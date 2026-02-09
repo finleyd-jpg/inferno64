@@ -1,6 +1,6 @@
 <../mkconfig
 
-TARG=limbo
+TARG=limbo64
 
 OFILES=	asm.$O\
 	com.$O\
@@ -23,7 +23,7 @@ HFILES=	limbo.h\
 	fns.h\
 	y.tab.h\
 	$ROOT/include/interp.h\
-	$ROOT/include/isa.h\
+	$ROOT/include/isa64.h\
 
 LIBS=	bio\
 	math\

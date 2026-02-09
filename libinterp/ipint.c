@@ -3,7 +3,7 @@
 #include "isa.h"
 #include "interp.h"
 #include "runt.h"
-#include "../include/mp.h"
+#include "mp.h"
 #include "libsec.h"
 #include "pool.h"
 #include "ipint.h"

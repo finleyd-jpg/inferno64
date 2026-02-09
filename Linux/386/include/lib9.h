@@ -48,13 +48,28 @@ typedef signed char	schar;
 typedef unsigned int Rune;
 typedef long long int	vlong;
 typedef unsigned long long int	uvlong;
-typedef unsigned int u32;
+typedef signed char s8;
+typedef unsigned char u8;
+typedef signed short s16;
+typedef unsigned short u16;
+typedef signed int s32;
+typedef unsigned long u32;
+typedef vlong s64;
+typedef uvlong u64;
+typedef s32 s32int;
+typedef ulong u32int;
+typedef vlong s64int;
 typedef uvlong u64int;
 
 typedef unsigned int	mpdigit;	/* for /sys/include/mp.h */
 typedef unsigned short u16int;
+typedef signed short s16int;
 typedef unsigned char u8int;
 typedef unsigned long uintptr;
+typedef long intptr;
+
+typedef intptr		WORD;
+typedef uintptr		UWORD;
 
 #define	USED(x)		if(x){}else{}
 #define	SET(x)

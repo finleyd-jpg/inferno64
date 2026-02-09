@@ -49,7 +49,7 @@ struct Dstate
 	ushort	blocklen;	/* blocking length */
 
 	ushort	diglen;		/* length of digest */
-	DigestState *(*hf)(uchar*, u32, uchar*, DigestState*);	/* hash func */
+	DigestState *(*hf)(uchar*, ulong, uchar*, DigestState*);	/* hash func */
 
 	/* for SSL format */
 	int	max;			/* maximum unpadded data per msg */
@@ -608,6 +608,8 @@ sslread(Chan *c, void *a, long n, vlong offset)
 	return n;
 }
 
+extern int nrand(int);
+
 /*
  *  this algorithm doesn't have to be great since we're just
  *  trying to obscure the block fill
@@ -854,7 +856,7 @@ struct Hashalg
 {
 	char	*name;
 	int	diglen;
-	DigestState *(*hf)(uchar*, u32, uchar*, DigestState*);
+	DigestState *(*hf)(uchar*, ulong, uchar*, DigestState*);
 };
 
 Hashalg hashtab[] =

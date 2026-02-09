@@ -34,8 +34,8 @@ OFILES=\
 	string.$O\
 
 HFILES=\
+	$ROOT/$OBJDIR/include/isa.h\
 	$ROOT/include/interp.h\
-	$ROOT/include/isa.h\
 	runt.h\
 	tab.h\
 

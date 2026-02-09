@@ -21,7 +21,7 @@ umult:
 	popl	%ebx
 	popl	%ebp
 	ret
-
+/*
 	.type	FPsave,@function
 	.global	FPsave
 FPsave:
@@ -41,7 +41,7 @@ FPrestore:
 	fldenv	(%eax)
 	popl	%ebp
 	ret
-
+*/
 	.type	_tas,@function
 	.globl	_tas
 _tas:

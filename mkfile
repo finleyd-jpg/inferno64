@@ -13,7 +13,8 @@ EMUDIRS=\
 	libsec\
 	libmath\
 	utils/iyacc\
-	limbo\
+	limbo32\
+	limbo64\
 	libinterp\
 	libkeyring\
 	libdraw\

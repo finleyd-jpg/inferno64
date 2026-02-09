@@ -32,7 +32,7 @@
 #include <libsec.h>
 
 typedef uchar	u8;
-typedef u32int	u32;
+// typedef u32int	u32;
 #define FULL_UNROLL
 
 static const u32 Td0[256];

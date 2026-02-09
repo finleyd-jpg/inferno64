@@ -1,3 +1,11 @@
+#ifdef LINUX_386
+#define _GNU_SOURCE
+#endif
+
+#ifdef LINUX_AMD64
+#define _GNU_SOURCE
+#endif
+
 #include	"dat.h"
 #include	"fns.h"
 #include	"error.h"

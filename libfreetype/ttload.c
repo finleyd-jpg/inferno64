@@ -1577,8 +1577,8 @@
 
 
   FT_CALLBACK_DEF( int )
-  tt_kern_pair_compare( const void*  a,
-                        const void*  b );
+  tt_kern_pair_compare( void*  a,
+                        void*  b );
 
 
   /*************************************************************************/
@@ -1716,8 +1716,8 @@
 
 
   FT_CALLBACK_DEF( int )
-  tt_kern_pair_compare( const void*  a,
-                        const void*  b )
+  tt_kern_pair_compare( void*  a,
+                        void*  b )
   {
     TT_Kern0_Pair  pair1 = (TT_Kern0_Pair)a;
     TT_Kern0_Pair  pair2 = (TT_Kern0_Pair)b;

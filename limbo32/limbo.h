@@ -1,6 +1,6 @@
 #include "lib9.h"
 #include "bio.h"
-#include "isa.h"
+#include "isa32.h"
 #include "mathi.h"
 
 /* internal dis ops */

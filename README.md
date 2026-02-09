@@ -10,3 +10,9 @@ This project includes source for the basic applications, Inferno itself (hosted 
 
 How this fork differs: 9boot instead of 9load, amd64 hosted (OpenBSD, Linux, 9front) and native (shell prompt) support, kfs64, NAPT (Network address and port translation), 9front drivers and ip stack.
 
+-s32 = asm 32bit source
+-s64 = asm 64bit source
+-b32 = symbol 32bit
+-b64 = symbol 64bit
+-d32 = 32bit dis
+-d64 = 64bit dis
