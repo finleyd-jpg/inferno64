@@ -185,8 +185,8 @@ enum
 {
 	MAXDIS	= ISELF+1,
 
-	XMAGIC	= 819248,	/* Normal magic */
-	SMAGIC	= 923426,	/* Signed module */
+	XMAGIC	= 034537,	/* Normal magic */
+	SMAGIC	= 145648,	/* Signed module */
 
 	AMP	= 0x00,		/* Src/Dst op addressing */
 	AFP	= 0x01,
