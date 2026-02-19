@@ -27,6 +27,7 @@ typedef struct Mntwalk	Mntwalk;
 typedef struct Mnt	Mnt;
 typedef struct Mhead	Mhead;
 typedef struct Note	Note;
+typedef struct Osenv	Osenv;
 typedef struct Path	Path;
 typedef struct Perf	Perf;
 typedef struct Pgrp	Pgrp;
@@ -91,6 +92,27 @@ struct Rept
 	s32	(*active)(void*);
 	s32	(*ck)(void*, int);
 	void	(*f)(void*);	/* called with VM acquire()'d */
+};
+
+struct Osenv
+{
+	char	*syserrstr;	/* last error from a system call, errbuf0 or 1 */
+	char	*errstr;	/* reason we're unwinding the error stack, errbuf1 or 0 */
+	char	errbuf0[ERRMAX];
+	char	errbuf1[ERRMAX];
+	Pgrp*	pgrp;		/* Ref to namespace, working dir and root */
+	Fgrp*	fgrp;		/* Ref to file descriptors */
+	Egrp*	egrp;	/* Environment vars */
+	Skeyset*	sigs;		/* Signed module keys */
+	Rendez*	rend;		/* Synchro point */
+	Queue*	waitq;		/* Info about dead children */
+	Queue*	childq;		/* Info about children for debuggers */
+	void*	debug;		/* Debugging master */
+	int	uid;		/* Numeric user id for system */
+	int	gid;		/* Numeric group id for system */
+	char*	user;		/* Inferno user name */
+	FPsave	fpu;		/* Floating point thread state */
+	int	fpuostate;
 };
 
 enum
@@ -442,8 +464,8 @@ struct Evalue
 
 struct Egrp
 {
-	Ref;
-	RWlock;
+	Ref r;
+	QLock l;
 	Evalue	**ent;
 	int	nent;			/* numer of slots in ent[] */
 	int	low;			/* lowest free index in ent[] */
@@ -585,7 +607,6 @@ struct Proc
 	char	*kstack;	/* known to l.s in 9front to switch to the kernel stack on syscallentry */
 	Mach	*mach;		/* machine running this proc */
 	char	*text;
-	char	*user;
 
 	char	*args;
 	int	nargs;		/* number of bytes of args */
@@ -612,9 +633,6 @@ struct Proc
 /*	QLock	seglock;	\/* locked whenever seg[] changes *\/
 	Segment	*seg[NSEG];*/
 
-	Pgrp	*pgrp;		/* Process group for namespace */
-	Egrp 	*egrp;		/* Environment group */
-	Fgrp	*fgrp;		/* File descriptor group */
 	Rgrp	*rgrp;		/* Rendez group */
 
 	Fgrp	*closingfgrp;	/* used during teardown */
@@ -670,9 +688,6 @@ struct Proc
 	int	nerrlab;
 	Label	errlab[NERR];
 	char	*syserrstr;	/* last error from a system call, errbuf0 or 1 */
-	char	*errstr;	/* reason we're unwinding the error stack, errbuf1 or 0 */
-	char	errbuf0[ERRMAX];
-	char	errbuf1[ERRMAX];
 	char	genbuf[128];	/* buffer used e.g. for last name element from namec */
 	Chan	*slash;
 	Chan	*dot;
@@ -718,12 +733,18 @@ struct Proc
 	Watchpt	*watchpt;	/* watchpoints */
 	int	nwatchpt;
 
-	/* forth specific fields */
-	Proc	*fprev, *fnext;	/* forth processes linked list */
-	void	*fmem;			/* forth process memory - sandboxed except for macro primitives */
-	void	*shm;		/* for devshm */
-	void	*canread;	/* for devready.c */
-	u8		fisgo;	/* 0 while waiting for the pctl message */
+	/* Inferno specific fields */
+	int	type;
+	void*	iprog;
+	void*	prog;
+	
+	void	*shm;
+	void	*canread;
+
+	Osenv	*env;
+	Osenv	defenv;
+
+	int	killed;
 
 	/* not used by 9front. get rid of it at some point */
 	intptr errpc;
@@ -781,6 +802,7 @@ extern	Queue*	kprintoq;
 extern  Queue	*kbdq;
 extern  Queue	*kscanq;
 extern  Ref	noteidalloc;
+extern	Queue	*printq;
 extern	uint	qiomaxatomic;
 extern	Queue*	serialoq;
 extern	char*	statename[];

@@ -1,7 +1,7 @@
 <../../../mkconfig
-objtype=386
+objtype=amd64
 SYSTARG=$OSTARG
-OBJTYPE=386
+OBJTYPE=amd64
 BIN=$ROOT/Inferno/$OBJTYPE
 LIBDIR=$ROOT/Inferno/$OBJTYPE/lib
 LIBDIRS=$ROOT/libfis $ROOT/libflate $ROOT/libkern
@@ -15,10 +15,10 @@ LIBFILES=${LIBS:%=$LIBDIR/%.a}
 
 BIN=$ROOT/Inferno/$OBJTYPE
 
-TARG=bootia32.efi bootx64.efi efiboot.fat
+TARG=bootia32.efi bootx64.efi #efiboot.fat
 HFILES=fns.h mem.h
-IMAGEBASE=0x8000
-CFLAGS=-FTVw
+IMAGEBASE=0x8200
+CFLAGS=-FTVw -I$BIN/include -I$ROOT/include
 PEFLAGS=$CFLAGS '-DIMAGEBASE='$IMAGEBASE
 
 all:V: $TARG

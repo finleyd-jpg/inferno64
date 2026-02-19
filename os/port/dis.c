@@ -5,7 +5,9 @@
 #include "fns.h"
 #include "../port/error.h"
 #include <isa.h>
+
 #include <interp.h>
+
 #include <kernel.h>
 #include "raise.h"
 
@@ -36,7 +38,7 @@ uvlong	gcbusy;
 uvlong	gcidle;
 uvlong	gcidlepass;
 uvlong	gcpartial;
-int keepbroken = 1;
+extern int keepbroken;
 static Prog*	proghash[64];
 
 static Progs*	delgrp(Prog*);
@@ -207,7 +209,7 @@ newprog(Prog *p, Modlink *m)
 	incref(on->pgrp);
 	incref(on->fgrp);
 	if(on->egrp != nil)
-		incref(on->egrp);
+		incref(&on->egrp->r);
 	if(on->sigs != nil)
 		incref(on->sigs);
 	on->user = nil;
@@ -978,7 +980,7 @@ progexit(void)
 
 	m = R.M->m;
 	if(broken){
-		print("[%s] Broken: \"%s\" at 0x%p pid %d\n", m->name, estr, up->env->errpc, up->pid);
+		print("[%s] Broken: \"%s\" at 0x%p pid %d\n", m->name, estr, up->errpc, up->pid);
 		if(1) dumpstack();
 	}
 	if(r->exval != H)
@@ -1146,7 +1148,7 @@ disinit(void *a)
 	incref(o->pgrp);
 	incref(o->fgrp);
 	if(o->egrp != nil)
-		incref(o->egrp);
+		incref(&o->egrp->r);
 	if(o->sigs != nil)
 		incref(o->sigs);
 	o->user = nil;
@@ -1156,10 +1158,12 @@ disinit(void *a)
 
 	isched.idle = 1;
 
+	/*
 	if(kopen("#c/cons", OREAD) != 0)
 		panic("failed to make fd0 from #c/cons");
 	kopen("#c/cons", OWRITE);
 	kopen("#c/cons", OWRITE);
+	*/
 
 	poperror();
 	vmachine(nil);

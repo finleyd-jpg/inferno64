@@ -1,8 +1,12 @@
 #include <lib9.h>
 #include <kernel.h>
+
 #include "interp.h"
+
 #include "isa.h"
+
 #include "runt.h"
+
 #include "prefabmod.h"
 #include "draw.h"
 #include "drawif.h"

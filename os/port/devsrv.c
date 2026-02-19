@@ -4,8 +4,11 @@
 #include "dat.h"
 #include "fns.h"
 #include "../port/error.h"
+
 #include "interp.h"
+
 #include "isa.h"
+
 #include "runt.h"
 
 typedef struct SrvFile SrvFile;
@@ -121,7 +124,7 @@ srvinit(void)
 static int
 srvcanattach(SrvFile *d)
 {
-	if(strcmp(d->user, up->user) == 0)
+	if(strcmp(d->user, up->env->user) == 0)
 		return 1;
 
 	/*
@@ -169,8 +172,8 @@ srvattach(char *spec)
 
 	d->ref = 1;
 	kstrdup(&d->spec, spec);
-	kstrdup(&d->user, up->user);
-	snprint(srvname, sizeof(srvname), "srv%d", up->pgrp->pgrpid);
+	kstrdup(&d->user, up->env->user);
+	snprint(srvname, sizeof(srvname), "srv%d", up->env->pgrp->pgrpid);
 	kstrdup(&d->name, srvname);
 	d->perm = DMDIR|0770;
 	mkqid(&d->qid, dev.pathgen++, 0, QTDIR);
@@ -259,7 +262,7 @@ srvopen(Chan *c, u32 omode)
 		nexterror();
 	}
 	devpermcheck(sf->user, sf->perm, omode);
-	if(omode&ORCLOSE && strcmp(sf->user, up->user) != 0)
+	if(omode&ORCLOSE && strcmp(sf->user, up->env->user) != 0)
 		error(Eperm);
 	if(sf->perm & DMEXCL && sf->opens != 0)
 		error(Einuse);
@@ -283,7 +286,7 @@ srvwstat(Chan *c, uchar *dp, s32 n)
 	SrvFile *sf, *f;
 
 	sf = c->aux;
-	if(strcmp(up->user, sf->user) != 0)
+	if(strcmp(up->env->user, sf->user) != 0)
 		error(Eperm);
 
 	d = smalloc(sizeof(*d)+n);
@@ -502,7 +505,7 @@ srvclunk(Chan *c, int remove)
 	}
 
 	noperm = 0;
-	if(remove && strcmp(sf->dir->user, up->user) != 0){
+	if(remove && strcmp(sf->dir->user, up->env->user) != 0){
 		noperm = 1;
 		remove = 0;
 	}
@@ -793,7 +796,7 @@ srvf2c(char *dir, char *file, Sys_FileIO *io)
 	f->waitlist.prev = &f->waitlist;
 
 	kstrdup(&f->name, file);
-	kstrdup(&f->user, up->user);
+	kstrdup(&f->user, up->env->user);
 	f->perm = 0666 & (~0666 | (s->perm & 0666));
 	f->length = 0;
 	f->ref = 2;

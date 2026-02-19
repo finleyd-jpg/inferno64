@@ -1,3 +1,4 @@
+
 typedef uchar		BYTE;		/* 8  bits */
 /* moved the WORD and UWORD to 9front/amd64/include/u.h
 	with the goal of making it architecture specific */
@@ -548,3 +549,4 @@ extern	void		readimagemodinit(void);
 
 #pragma	varargck	type	"D"	Inst*
 #pragma varargck argpos errorf 1
+

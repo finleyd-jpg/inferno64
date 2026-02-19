@@ -3,168 +3,154 @@
 #include	"mem.h"
 #include	"dat.h"
 #include	"fns.h"
-#include	"../port/error.h"
-
-#include	<libsec.h>
-
-/* machine specific hardware random number generator */
-void (*hwrandbuf)(void*, u32) = nil;
 
 static struct
 {
 	QLock;
-	Chachastate;
-} *rs;
+	Rendez	producer;
+	Rendez	consumer;
+	ulong	randomcount;
+	uchar	buf[1024];
+	uchar	*ep;
+	uchar	*rp;
+	uchar	*wp;
+	uchar	next;
+	uchar	bits;
+	uchar	wakeme;
+	uchar	filled;
+	int	target;
+	int	kprocstarted;
+	ulong	randn;
+} rb;
 
-typedef struct Seedbuf Seedbuf;
-struct Seedbuf
+static int
+rbnotfull(void*)
 {
-	ulong		randomcount;
-	uchar		buf[64];
-	uchar		nbuf;
-	uchar		next;
-	ushort		bits;
+	int i;
 
-	SHA2_512state	ds;
-};
+	i = rb.wp - rb.rp;
+	if(i < 0)
+		i += sizeof(rb.buf);
+	return i < rb.target;
+}
+
+static int
+rbnotempty(void*)
+{
+	return rb.wp != rb.rp;
+}
 
 static void
-randomsample(Ureg*, Timer *t)
+genrandom(void*)
 {
-	Seedbuf *s = t->ta;
+	setpri(PriBackground);
 
-	if(s->randomcount == 0 || s->nbuf >= sizeof(s->buf))
-		return;
-	s->bits = (s->bits<<2) ^ s->randomcount;
-	s->randomcount = 0;
-	if(++s->next < 8/2)
-		return;
-	s->next = 0;
-	s->buf[s->nbuf++] ^= s->bits;
+	for(;;) {
+		for(;;)
+			if(++rb.randomcount > 100000)
+				break;
+		if(anyhigher())
+			sched();
+		if(rb.filled || !rbnotfull(0))
+			sleep(&rb.producer, rbnotfull, 0);
+	}
 }
 
 /*
-12:57 < joe7> In os/port/random.c:^randomseed() function, the up variable is used.
-	From the timeradd() definition, it should be a Timer * variable.
-12:57 < joe7> But, I cannot find the definition of that variable in random.c
-12:58 < cinap_lenrek> joe7: the Proc structure has a timer built in
-12:58 < cinap_lenrek> joe7: anonymous struct
-12:58 < cinap_lenrek> the compiler figures out the offset within the struct
-12:59 < joe7> oh, it figures out the offset too? I was thinking that if the
-	fields should be at the beginning.
-12:59 < cinap_lenrek> nope
-12:59 < cinap_lenrek> can be anywhere
-12:59 < cinap_lenrek> welcome to plan9 c
-12:59 < joe7> I could not figure out how it could do the translation from Proc * to Timer *
-13:00 < joe7> thanks.
-*/
+ *  produce random bits in a circular buffer
+ */
 static void
-randomseed(void*)
+randomclock(void)
 {
-	Seedbuf *s;
+	uchar *p;
 
-	/* TODO
-	 * use the secret memory, used to back cryptographic
-	 * keys and cipher states.
-	 * Not sure if it is relevant to inferno
-	s = secalloc(sizeof(Seedbuf));
-	*/
-	s = smalloc(sizeof(Seedbuf));
+	if(rb.randomcount == 0)
+		return;
 
-	if(hwrandbuf != nil)
-		(*hwrandbuf)(s->buf, sizeof(s->buf));
-
-	/* Frequency close but not equal to HZ */
-	up->tns = (vlong)(MS2HZ+3)*1000000LL;
-	up->tmode = Tperiodic;
-	up->tt = nil;
-	up->ta = s;
-	up->tf = randomsample;
-	timeradd(up);
-	while(s->nbuf < sizeof(s->buf)){
-		if(++s->randomcount <= 100000)
-			continue;
-		if(anyhigher())
-			sched();
+	if(!rbnotfull(0)) {
+		rb.filled = 1;
+		return;
 	}
-	timerdel(up);
 
-	sha2_512(s->buf, sizeof(s->buf), s->buf, &s->ds);
-	setupChachastate(rs, s->buf, 32, s->buf+32, 12, 20);
-	qunlock(rs);
+	rb.bits = (rb.bits<<2) ^ (rb.randomcount&3);
+	rb.randomcount = 0;
 
-	/* secfree(s); */
-	free(s);
+	rb.next += 2;
+	if(rb.next != 8)
+		return;
 
-	pexit("", 1);
+	rb.next = 0;
+	*rb.wp ^= rb.bits ^ *rb.rp;
+	p = rb.wp+1;
+	if(p == rb.ep)
+		p = rb.buf;
+	rb.wp = p;
+
+	if(rb.wakeme)
+		wakeup(&rb.consumer);
 }
 
 void
 randominit(void)
 {
-	/* rs = secalloc(sizeof(*rs)); */
-	rs = smalloc(sizeof(*rs));
-	qlock(rs);	/* randomseed() unlocks once seeded */
-	kproc("randomseed", randomseed, nil, 0);
+	/* Frequency close but not equal to HZ */
+	addclock0link(randomclock, 13);
+	rb.target = 16;
+	rb.ep = rb.buf + sizeof(rb.buf);
+	rb.rp = rb.wp = rb.buf;
 }
 
+/*
+ *  consume random bytes from a circular buffer
+ */
 ulong
-randomread(void *p, ulong n)
+randomread(void *xp, ulong n)
 {
-	Chachastate c;
+	int i, sofar;
+	uchar *e, *p;
 
-	if(n == 0)
-		return 0;
+	p = xp;
 
-	if(hwrandbuf != nil)
-		(*hwrandbuf)(p, n);
-
-	/* copy chacha state, rekey and increment iv */
-	qlock(rs);
-	c = *rs;
-	chacha_encrypt((uchar*)&rs->input[4], 32, &c);
-	if(++rs->input[13] == 0)
-		if(++rs->input[14] == 0)
-			++rs->input[15];
-	qunlock(rs);
-
-	/* encrypt the buffer, can fault */
-	chacha_encrypt((uchar*)p, n, &c);
-
-	/* prevent state leakage */
-	memset(&c, 0, sizeof(c));
-
-	return n;
-}
-
-/* used by fastrand() */
-void
-genrandom(uchar *p, int n)
-{
-	randomread(p, n);
-}
-
-/* used by rand(),nrand() */
-long
-lrand(void)
-{
-	/* xoroshiro128+ algorithm */
-	static int seeded = 0;
-	static uvlong s[2];
-	static Lock lk;
-	ulong r;
-
-	if(seeded == 0){
-		randomread(s, sizeof(s));
-		seeded = (s[0] | s[1]) != 0;
+	qlock(&rb);
+	if(waserror()){
+		qunlock(&rb);
+		nexterror();
+	}
+	if(!rb.kprocstarted){
+		rb.kprocstarted = 1;
+		kproc("genrand", genrandom, nil, 0);
 	}
 
-	lock(&lk);
-	r = (s[0] + s[1]) >> 33;
-	s[1] ^= s[0];
- 	s[0] = (s[0] << 55 | s[0] >> 9) ^ s[1] ^ (s[1] << 14);
- 	s[1] = (s[1] << 36 | s[1] >> 28);
-	unlock(&lk);
+	for(sofar = 0; sofar < n; sofar += i){
+		i = rb.wp - rb.rp;
+		if(i == 0){
+			rb.wakeme = 1;
+			wakeup(&rb.producer);
+			sleep(&rb.consumer, rbnotempty, 0);
+			rb.wakeme = 0;
+			continue;
+		}
+		if(i < 0)
+			i = rb.ep - rb.rp;
+		if((i+sofar) > n)
+			i = n - sofar;
+		memmove(p + sofar, rb.rp, i);
+		e = rb.rp + i;
+		if(e == rb.ep)
+			e = rb.buf;
+		rb.rp = e;
+	}
+	if(rb.filled && rb.wp == rb.rp){
+		i = 2*rb.target;
+		if(i > sizeof(rb.buf) - 1)
+			i = sizeof(rb.buf) - 1;
+		rb.target = i;
+		rb.filled = 0;
+	}
+	poperror();
+	qunlock(&rb);
 
- 	return r;
+	wakeup(&rb.producer);
+
+	return n;
 }

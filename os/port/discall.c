@@ -5,7 +5,9 @@
 #include "fns.h"
 #include "../port/error.h"
 #include <isa.h>
+
 #include <interp.h>
+
 #include "kernel.h"
 
 #define	QP(l)	(Prog**)((char*)(l)+sizeof(QLock))

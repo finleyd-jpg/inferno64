@@ -173,8 +173,8 @@ void	putcr2(u64);
 void	putcr3(u64);
 void	putcr4(u64);
 void	putxcr0(u64);
-void	putdr(u64*);
-void	putdr01236(u64*);
+/* void	putdr(u64*);
+void	putdr01236(u64*); */
 void	putdr6(u64);
 void	putdr7(u64);
 void*	rampage(void);

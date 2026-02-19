@@ -18,6 +18,9 @@ typedef unsigned char	u8int;
 typedef unsigned short	u16int;
 typedef unsigned int	u32int;
 typedef unsigned long long u64int;
+typedef long long s64int;
+typedef u64int u64;
+typedef s64int s64;
 
 /* FCR */
 #define	FPINEX	(1<<5)

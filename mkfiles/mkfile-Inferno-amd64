@@ -5,14 +5,14 @@ CPUS=		arm mips 386 amd64
 O=		6
 OS=		v851ok0q2t6
 
-AR=		ar
+AR=		iar
 ARFLAGS=	vu
 
 AS=		6a
 ASFLAGS=
 
 CC=		6c
-CFLAGS=		-wFVT -I$ROOT/Inferno/$OBJTYPE/include -I$ROOT/Inferno/include -I$ROOT/include
+CFLAGS=		-wFVT -I$ROOT/Inferno/$OBJTYPE/include -I$ROOT/include -I$ROOT/Inferno/include 
 ANSICPP= -p
 
 LD=		6l

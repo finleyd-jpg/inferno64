@@ -104,15 +104,15 @@ bingen(Chan *c, char*, Dirtab *, int, int i, Dir *dp)
 		return 1;
 	}
 	if(WHICHFILE(c->qid) == Qtopdir){
-		if(i > up->fgrp->maxfd)
+		if(i > up->env->fgrp->maxfd)
 			return -1;
 		nsourcefds = 0;
 
-		for(nfd = 0; nfd <= up->fgrp->maxfd; nfd++){
-			if(up->fgrp->fd[nfd] != nil &&
-				up->fgrp->fd[nfd]->type != bintype &&
-				(up->fgrp->fd[nfd]->mode == OREAD ||
-				 up->fgrp->fd[nfd]->mode == ORDWR)){
+		for(nfd = 0; nfd <= up->env->fgrp->maxfd; nfd++){
+			if(up->env->fgrp->fd[nfd] != nil &&
+				up->env->fgrp->fd[nfd]->type != bintype &&
+				(up->env->fgrp->fd[nfd]->mode == OREAD ||
+				 up->env->fgrp->fd[nfd]->mode == ORDWR)){
 				if(nsourcefds == i){
 					snprint(fdname,5,"%d",nfd);
 					mkqid(&q, Qfddir, nfd, QTDIR); /* source fd in qid.vers */
@@ -182,26 +182,26 @@ binopen(Chan *c, u32 omode)
 		error(Ebadarg);
 
 	sourcefd = SOURCEFD(c->qid);
-	if(sourcefd > up->fgrp->maxfd)
+	if(sourcefd > up->env->fgrp->maxfd)
 		error(Ebadarg);
-	if(up->fgrp->fd[sourcefd] == nil ||
-		up->fgrp->fd[sourcefd]->type == bintype)
+	if(up->env->fgrp->fd[sourcefd] == nil ||
+		up->env->fgrp->fd[sourcefd]->type == bintype)
 		error(Ebadarg);
-	if(up->fgrp->fd[sourcefd]->mode != OREAD &&
-		up->fgrp->fd[sourcefd]->mode != ORDWR)
+	if(up->env->fgrp->fd[sourcefd]->mode != OREAD &&
+		up->env->fgrp->fd[sourcefd]->mode != ORDWR)
 		error(Ebadarg);
 
 	/* find any other buffering file that has opened
 		this source fd, so the Buffer is used
 		by both to keep the pointers in sync */
 	bin = nil;
-	for(nfd = 0; nfd <= up->fgrp->maxfd; nfd++){
-		if(up->fgrp->fd[nfd] != nil &&
-			up->fgrp->fd[nfd]->type == bintype &&
-			up->fgrp->fd[nfd]->aux != nil &&
-			((Binreader*)up->fgrp->fd[nfd]->aux)->bin->sourcefd == sourcefd){
-			bin = ((Binreader*)up->fgrp->fd[nfd]->aux)->bin;
-			DBG("binopen found bin chanpath(c) %s br %p bin %p\n", chanpath(c), up->fgrp->fd[nfd]->aux, bin);
+	for(nfd = 0; nfd <= up->env->fgrp->maxfd; nfd++){
+		if(up->env->fgrp->fd[nfd] != nil &&
+			up->env->fgrp->fd[nfd]->type == bintype &&
+			up->env->fgrp->fd[nfd]->aux != nil &&
+			((Binreader*)up->env->fgrp->fd[nfd]->aux)->bin->sourcefd == sourcefd){
+			bin = ((Binreader*)up->env->fgrp->fd[nfd]->aux)->bin;
+			DBG("binopen found bin chanpath(c) %s br %p bin %p\n", chanpath(c), up->env->fgrp->fd[nfd]->aux, bin);
 			qlock(bin);
 			incref(bin);
 			qunlock(bin);	
@@ -237,7 +237,7 @@ binopen(Chan *c, u32 omode)
 	if(bin->buf == nil){
 		bin->buf = malloc(conf.pipeqsize);
 		bin->readp = bin->writep = bin->buf;
-		bin->sourcechan = up->fgrp->fd[sourcefd]; /* what if the sourcefd is closed in the meanwhile? */
+		bin->sourcechan = up->env->fgrp->fd[sourcefd]; /* what if the sourcefd is closed in the meanwhile? */
 		bin->bufsize = conf.pipeqsize;
 	}
 	qunlock(bin);

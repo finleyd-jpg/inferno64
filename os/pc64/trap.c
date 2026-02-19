@@ -253,11 +253,7 @@ trap(Ureg *ureg)
 	vno = ureg->type;
 	if(irqhandled(ureg, vno) == 0 /* TODO && (!user || !usertrap(vno)) */){
 		dumpregs(ureg);
-		if(up->fmem != nil){
-			dumpforthregs(ureg);
-			dumprstack(ureg->r11, ureg->r8, ureg->r12);
-			dumppstack(ureg->r11, ureg->dx, ureg->r12);
-		}
+		dumpforthregs(ureg);
 /*		if(user == 0){ */
 			ureg->sp = (uintptr)&ureg->sp;
 			_dumpstack(ureg);
@@ -539,8 +535,8 @@ faultamd64(Ureg* ureg, void*)
 	f = fpusave();
 	if(!user && waserror()){
 		if(up->nerrlab == 0){
-			pprint("suicide: sys: %s\n", up->errstr);
-			pexit(up->errstr, 1);
+			pprint("suicide: sys: %s\n", up->env->errstr);
+			pexit(up->env->errstr, 1);
 		}
 		int s = splhi();
 		fpurestore(f);

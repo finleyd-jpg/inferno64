@@ -462,6 +462,7 @@ e820scan(void)
 		switch(type){
 		case 1:
 			memmapadd(base, top - base, MemRAM);
+			print("adding ram t 0x%zux s 0x%zux\n", base, top-base);
 			break;
 		case 3:
 			memmapadd(base, top - base, MemACPI);
@@ -696,7 +697,7 @@ meminit0(void)
 	/*
 	 * Discover more RAM and map to KZERO.
 	 */
-	if(e820scan() < 0)
+//	if(e820scan() < 0)
 		ramscan(MemMin, -((uintptr)MemMin));
 
 	/*

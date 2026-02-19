@@ -63,7 +63,7 @@ talkrdb(Ureg *ureg)
 	char *req;
 
 	printq = nil;	// turn off serial console
-	klogq = nil;	// turn off /dev/kprint if active
+	/*klogq = nil;*/	// turn off /dev/kprint if active
 	iprint("Edebugger reset\n");
 	for(;;){
 		req = getline();

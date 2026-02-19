@@ -6,7 +6,7 @@
 #define offsetof(s, m)	(u32)(&(((s*)0)->m))
 #define assert(x)	if(x){}else _assert("x")
 
-#define	DBG	if(debug)print
+#define	DBG	if(0)print
 
 /*
  * mem routines

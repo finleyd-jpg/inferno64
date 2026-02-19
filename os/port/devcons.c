@@ -30,6 +30,7 @@ int	panicking;
 int mouseshifted;
 Queue*  kbdq;                   /* unprocessed console input */
 Queue*  lineq;                  /* processed console input */
+Queue*	printq;
 static struct
 {
         QLock;
@@ -47,9 +48,12 @@ static struct
 } kbd;
 /* above until kbdfs */
 
-char*	sysname;
+/* char*	sysname; */
 char	*sysname;
 vlong	fasthz;
+
+char	*eve;
+char	hostdomain[] = "unknown";
 
 static int	readtime(ulong, char*, int);
 static int	readbintime(char*, int);
@@ -365,10 +369,10 @@ pprint(char *fmt, ...)
 	va_list arg;
 	char buf[2*PRINTSIZE];
 
-	if(up == nil || up->fgrp == nil)
+	if(up == nil || up->env->fgrp == nil)
 		return 0;
 
-	c = up->fgrp->fd[2];
+	c = up->env->fgrp->fd[2];
 	if(c==nil || (c->flag&CMSG)!=0 || (c->mode!=OWRITE && c->mode!=ORDWR))
 		return 0;
 	n = snprint(buf, sizeof buf, "%s %ud: ", up->text, up->pid);
@@ -522,8 +526,8 @@ fddump()
 	Chan *c;
 
 	p = proctab(6);
-	for(i = 0; i <= p->fgrp->maxfd; i++) {
-		if((c = p->fgrp->fd[i]) == nil)
+	for(i = 0; i <= p->env->fgrp->maxfd; i++) {
+		if((c = p->env->fgrp->fd[i]) == nil)
 			continue;
 		print("%d: %s\n", i, c->path == nil? "???": c->path->s);
 	}
@@ -593,6 +597,15 @@ flushkbdline(Queue *q)
 		qwrite(q, kbd.line, kbd.x);
 		kbd.x = 0;
 	}
+}
+
+/**
+ * returns true if current user is eve
+ */
+int
+iseve(void)
+{
+	return strcmp(eve, up->env->user) == 0;
 }
 
 static Chan*
@@ -790,7 +803,7 @@ consread(Chan *c, void *buf, s32 n, s64 offset)
 		return readstr((ulong)offset, buf, n, hostdomain);
 
 	case Quser:
-		return readstr((ulong)offset, buf, n, up->user);
+		return readstr((ulong)offset, buf, n, up->env->user);
 
 	case Qnull:
 		return 0;
@@ -951,11 +964,12 @@ conswrite(Chan *c, void *va, s32 n, s64 offset)
 			error(Eperm);
 		return writebintime(a, n);
 
+/*
 	case Qhostowner:
 		return hostownerwrite(a, n);
 
 	case Qhostdomain:
-		return hostdomainwrite(a, n);
+		return hostdomainwrite(a, n); */
 
 	case Qjit:
 		if(n >= sizeof(buf))

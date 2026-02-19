@@ -141,8 +141,15 @@ mmuinit(void)
 	 */
 	wrmsr(KernelGSbase, (u64)&machp[m->machno]);
 
+	preallocpages();
+}
+
+void
+preallocpages(void)
+{
 	/* pre allocate pages */
 	Confmem *cm;
+	int i;
 
 	for(i=0; i<nelem(conf.mem); i++){
 		cm = &conf.mem[i];

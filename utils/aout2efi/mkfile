@@ -1,0 +1,15 @@
+<../../mkconfig
+
+TARG=aout2efi	# inferno archiver
+
+OFILES=	aout2efi.$O
+
+HFILES=	../include/mach.h\
+
+LIBS=mach 9		# libbio.a uses lib9.a so order matters.
+
+BIN=$ROOT/$OBJDIR/bin
+
+<$ROOT/mkfiles/mkone-$SHELLTYPE
+
+CFLAGS=	$CFLAGS -I../include

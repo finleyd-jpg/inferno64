@@ -4,9 +4,13 @@
 #include "dat.h"
 #include "fns.h"
 #include "../port/error.h"
+
 #include "isa.h"
+
 #include "interp.h"
+
 #include "runt.h"
+
 #include "kernel.h"
 
 #define DP if(1){}else print
@@ -895,7 +899,7 @@ Sys_pctl(void *fp)
 	else
 	if(f->flags & Sys_FORKENV) {
 		ne.ne = newegrp();
-		egrpcpy(ne.ne, o->egrp);
+		envcpy(ne.ne, o->egrp);
 		oe = o->egrp;
 		o->egrp = ne.ne;
 		ne.ne = nil;

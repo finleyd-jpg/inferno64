@@ -10,7 +10,8 @@ DIRS=\
 	install\
 	ip\
 	lego\
-	limbo\
+	limbo32\
+	limbo64\
 	mash\
 	mk\
 	mpc\

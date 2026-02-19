@@ -1,6 +1,9 @@
 #include "lib9.h"
+
 #include "isa.h"
+
 #include "interp.h"
+
 #include "raise.h"
 #include <kernel.h>
 
@@ -660,11 +663,12 @@ lookmod(char *s)
 {
 	Module *m;
 
-	for(m = modules; m != nil; m = m->link)
+	for(m = modules; m != nil; m = m->link) {
 		if(strcmp(s, m->path) == 0) {
 			m->ref++;
 			return m;
 		}
+	}
 	return nil;
 }
 

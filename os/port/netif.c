@@ -184,7 +184,7 @@ netifopen(Netif *nif, Chan *c, int omode)
 		case Ndataqid:
 		case Nctlqid:
 			f = nif->f[id];
-			if(netown(f, up->user, omode&7) < 0)
+			if(netown(f, up->env->user, omode&7) < 0)
 				error(Eperm);
 			break;
 		}
@@ -370,7 +370,7 @@ netifwstat(Netif *nif, Chan *c, uchar *db, int n)
 	if(f == 0)
 		error(Enonexist);
 
-	if(netown(f, up->user, OWRITE) < 0)
+	if(netown(f, up->env->user, OWRITE) < 0)
 		error(Eperm);
 
 	dir = smalloc(sizeof(Dir)+n);
@@ -530,7 +530,7 @@ openfile(Netif *nif, int id)
 		}
 		f->inuse = 1;
 		qreopen(f->in);
-		netown(f, up->user, 0);
+		netown(f, up->env->user, 0);
 		qunlock(f);
 		qunlock(nif);
 		poperror();

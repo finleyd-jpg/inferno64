@@ -228,7 +228,7 @@ devwalk(Chan *c, Chan *nc, char **name, int nname, Dirtab *tab, int ntab, Devgen
 /* print("devwalk c %s nc %s n %s name %s caller 0x%p\n", chanpath(c), chanpath(nc), n, *name, getcallerpc(&c)); */
 					error(Enonexist);
 				}
-				kstrcpy(up->errstr, Enonexist, ERRMAX);
+				kstrcpy(up->env->errstr, Enonexist, ERRMAX);
 				goto Done;
 			case 0:
 				continue;
@@ -285,7 +285,7 @@ devstat(Chan *c, uchar *db, int n, Dirtab *tab, int ntab, Devgen *gen)
 				return n;
 			}
 			print("%s %s: devstat %C %llux\n",
-				up->text, up->user,
+				up->text, up->env->user,
 				devtab[c->type]->dc, c->qid.path);
 
 			error(Enonexist);
@@ -338,7 +338,7 @@ devdirread(Chan *c, char *d, long n, Dirtab *tab, int ntab, Devgen *gen)
 }
 
 /*
- * error(Eperm) if open permission not granted for up->user.
+ * error(Eperm) if open permission not granted for up->env->user.
  */
 void
 devpermcheck(char *fileuid, u32 perm, s32 omode)
@@ -346,17 +346,17 @@ devpermcheck(char *fileuid, u32 perm, s32 omode)
 	u32 t;
 	static int access[] = { 0400, 0200, 0600, 0100 };
 
-	if(strcmp(up->user, fileuid) == 0)
+	if(strcmp(up->env->user, fileuid) == 0)
 		perm <<= 0;
 	else
-	if(strcmp(up->user, eve) == 0)
+	if(strcmp(up->env->user, eve) == 0)
 		perm <<= 3;
 	else
 		perm <<= 6;
 
 	t = access[omode&3];
 	if((t&perm) != t){
-		print("devpermcheck Eperm up->user %s perm 0x%ux t 0x%ux\n", up->user, perm, t);
+		print("devpermcheck Eperm up->env->user %s perm 0x%ux t 0x%ux\n", up->env->user, perm, t);
 		error(Eperm);
 	}
 }

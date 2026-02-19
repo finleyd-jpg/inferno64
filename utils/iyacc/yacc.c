@@ -1,6 +1,13 @@
 #include <lib9.h>
 #include <bio.h>
+
+#ifdef LINUX_386
 #include <ctype.h>
+#endif
+
+#ifdef LINUX_AMD64
+#include <ctype.h>
+#endif
 
 #define	Bungetrune	Bungetc		/* ok for now. */
 

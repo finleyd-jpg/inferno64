@@ -1,7 +1,11 @@
 #include "lib9.h"
+
 #include "interp.h"
+
 #include "isa.h"
+
 #include "runt.h"
+
 #include "draw.h"
 #include "tk.h"
 #include "tkmod.h"

@@ -1,5 +1,5 @@
 #include "lib9.h"
-#include "isa.h"
+#include "isa64.h"
 #include "interp.h"
 #include "raise.h"
 

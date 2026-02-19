@@ -440,7 +440,7 @@ TEXT putcr4(SB), 1, $-4
 
 TEXT getxcr0(SB), 1, $-4			/* XCR0 - extended control */
 	XORQ CX, CX
-	WORD $0x010f; BYTE $0xd0	// XGETBV
+	WORD $0x010f; BYTE $0xd0	/* XGETBV */
 	SHLQ $32, DX
 	ORQ DX, AX
 	RET
@@ -450,7 +450,7 @@ TEXT putxcr0(SB), 1, $-4
 	MOVL RARG, DX
 	SHRQ $32, DX
 	MOVL RARG, AX
-	WORD $0x010f; BYTE $0xd1	// XSETBV
+	WORD $0x010f; BYTE $0xd1	/* XSETBV */
 	RET
 
 TEXT mb386(SB), 1, $-4				/* hack */
@@ -692,31 +692,31 @@ TEXT _fxsave(SB), 1, $-4
 TEXT _xrstor(SB), 1, $-4
 	MOVL $7, AX
 	XORL DX, DX
-	BYTE $0x48; BYTE $0x0f; BYTE $0xae; BYTE $0x6d; BYTE $0x00 // XRSTOR (RARG)
+	BYTE $0x48; BYTE $0x0f; BYTE $0xae; BYTE $0x6d; BYTE $0x00 /* XRSTOR (RARG) */
 	RET
 
 TEXT _xrstors(SB), 1, $-4
 	MOVL $7, AX
 	XORL DX, DX
-	BYTE $0x48; BYTE $0x0f; BYTE $0xc7; BYTE $0x5d; BYTE $0x00 // XRSTORS (RARG)
+	BYTE $0x48; BYTE $0x0f; BYTE $0xc7; BYTE $0x5d; BYTE $0x00 /* XRSTORS (RARG) */
 	RET
 
 TEXT _xsave(SB), 1, $-4
 	MOVL $7, AX
 	XORL DX, DX
-	BYTE $0x48; BYTE $0x0f; BYTE $0xae; BYTE $0x65; BYTE $0x00 // XSAVE (RARG)
+	BYTE $0x48; BYTE $0x0f; BYTE $0xae; BYTE $0x65; BYTE $0x00 /* XSAVE (RARG) */
 	RET
 
 TEXT _xsaveopt(SB), 1, $-4
 	MOVL $7, AX
 	XORL DX, DX
-	BYTE $0x48; BYTE $0x0f; BYTE $0xae; BYTE $0x75; BYTE $0x00 // XSAVEOPT (RARG)
+	BYTE $0x48; BYTE $0x0f; BYTE $0xae; BYTE $0x75; BYTE $0x00 /* XSAVEOPT (RARG) */
 	RET
 
 TEXT _xsaves(SB), 1, $-4
 	MOVL $7, AX
 	XORL DX, DX
-	BYTE $0x48; BYTE $0x0f; BYTE $0xc7; BYTE $0x6d; BYTE $0x00 // XSAVES (RARG)
+	BYTE $0x48; BYTE $0x0f; BYTE $0xc7; BYTE $0x6d; BYTE $0x00 /* XSAVES (RARG) */
 	RET
 
 TEXT _fwait(SB), 1, $-4
@@ -800,10 +800,11 @@ f3:
 
 /* debug register access */
 
+/*
 TEXT putdr(SB), 1, $-4
 	MOVQ	56(BP), AX
 	MOVQ	AX, DR7
-	/* wet floor */
+	*//* wet floor *//*
 TEXT putdr01236(SB), 1, $-4
 	MOVQ	0(BP), AX
 	MOVQ	AX, DR0
@@ -816,6 +817,8 @@ TEXT putdr01236(SB), 1, $-4
 	MOVQ	48(BP), AX
 	MOVQ	AX, DR6
 	RET
+
+*/
 
 TEXT getdr6(SB), 1, $-4
 	MOVQ	DR6, AX

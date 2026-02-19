@@ -84,6 +84,8 @@ open(READ)	rlock()
 open(RDWR)	wlock()
  */
 
+#ifdef __________should_not_be_defined
+
 /*
  * shared memory data structures. Modeled after Egrp.
  */
@@ -112,6 +114,8 @@ struct Sgrp
 	int	ment;	/* maximum number of entries */
 	u32	vers;	/* of Sgrp */
 };
+
+#endif
 
 Sgrp* newshmgrp(void);
 static int shmwriteable(Chan *c);

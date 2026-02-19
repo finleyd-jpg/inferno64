@@ -793,7 +793,7 @@ getrealloctag(void *v)
 	return b->reallocpc;
 }
 
-ulong
+uintptr
 msize(void *v)
 {
 	if(v == nil)

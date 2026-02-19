@@ -283,7 +283,7 @@ mntauth(Chan *c, char *spec)
 
 	r->request.type = Tauth;
 	r->request.afid = c->fid;
-	r->request.uname = up->user;
+	r->request.uname = up->env->user;
 	r->request.aname = spec;
 	mountrpc(m, r);
 
@@ -340,7 +340,7 @@ mntattach(Chan *c, Chan *ac, char *spec, int flags)
 		r->request.afid = NOFID;
 	else
 		r->request.afid = ac->fid;
-	r->request.uname = up->user;
+	r->request.uname = up->env->user;
 	r->request.aname = spec;
 	mountrpc(m, r);
 
@@ -1028,13 +1028,13 @@ mountio(Mnt *m, Mntrpc *r)
 print("mountio waserror() at the start pid %ud\n", up->pid);
 		if(m->rip == up)
 			mntgate(m);
-		if(strcmp(up->errstr, Eintr) != 0 || waserror()){
+		if(strcmp(up->env->errstr, Eintr) != 0 || waserror()){
 			r = mntflushfree(m, r);
 			switch(r->request.type){
 			case Tremove:
 			case Tclunk:
 				/* botch, abandon fid */ 
-				if(strcmp(up->errstr, Ehungup) != 0)
+				if(strcmp(up->env->errstr, Ehungup) != 0)
 					r->c->fid = 0;
 			}
 			nexterror();

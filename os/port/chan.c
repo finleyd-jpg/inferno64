@@ -728,7 +728,7 @@ cmount(Chan *new, Chan *old, int flag, char *spec)
 		poperror();
 	}
 
-	pg = up->pgrp;
+	pg = up->env->pgrp;
 	wlock(&pg->ns);
 	l = &MOUNTH(pg, old->qid);
 	for(m = *l; m != nil; m = m->hash){
@@ -794,7 +794,7 @@ cunmount(Chan *mnt, Chan *mounted)
 	 * cclose will take care of freeing the umh.
 	 */
 
-	pg = up->pgrp;
+	pg = up->env->pgrp;
 	wlock(&pg->ns);
 
 	l = &MOUNTH(pg, mnt->qid);
@@ -871,7 +871,7 @@ findmount(Chan **cp, Mhead **mp, int type, int dev, Qid qid)
 	Pgrp *pg;
 	Mhead *m;
 
-	pg = up->pgrp;
+	pg = up->env->pgrp;
 	rlock(&pg->ns);
 	for(m = MOUNTH(pg, qid); m != nil; m = m->hash){
 		if(eqchantdqid(m->from, type, dev, qid, 1)){
@@ -1006,7 +1006,7 @@ walk(Chan **cp, char **names, int nnames, int nomount, int *nerror)
 				*nerror = nhave;
 			pathclose(path);
 			cclose(c);
-			kstrcpy(up->errstr, Enotdir, ERRMAX);
+			kstrcpy(up->env->errstr, Enotdir, ERRMAX);
 			putmhead(mh);
 			return -1;
 		}
@@ -1085,11 +1085,11 @@ walk(Chan **cp, char **names, int nnames, int nomount, int *nerror)
 					if(wq->nqid == 0 || (wq->qid[wq->nqid-1].type&QTDIR) != 0){
 						if(nerror)
 							*nerror = nhave+wq->nqid+1;
-						kstrcpy(up->errstr, Edoesnotexist, ERRMAX);
+						kstrcpy(up->env->errstr, Edoesnotexist, ERRMAX);
 					}else{
 						if(nerror)
 							*nerror = nhave+wq->nqid;
-						kstrcpy(up->errstr, Enotdir, ERRMAX);
+						kstrcpy(up->env->errstr, Enotdir, ERRMAX);
 					}
 					free(wq);
 					putmhead(mh);
@@ -1266,7 +1266,7 @@ namelenerror(char *aname, int len, char *err)
 		snprint(up->genbuf, sizeof up->genbuf, "...%.*s",
 			utfnlen(name, ename-name), name);
 	}
-	snprint(up->errstr, ERRMAX, "%#q %s", up->genbuf, err);
+	snprint(up->env->errstr, ERRMAX, "%#q %s", up->genbuf, err);
 	nexterror();
 }
 
@@ -1335,7 +1335,7 @@ namec(char *aname, int amode, int omode, ulong perm)
 	nomount = 0;
 	switch(name[0]){
 	case '/':
-		c = up->pgrp->slash;
+		c = up->env->pgrp->slash;
 		incref(c);
 		break;
 
@@ -1362,7 +1362,7 @@ namec(char *aname, int amode, int omode, ulong perm)
 		 *	   any others left unprotected)
 		 */
 		n = chartorune(&r, up->genbuf+1)+1;
-		if(up->pgrp->noattach && utfrune("|decp", r)==nil)
+		if(up->env->pgrp->noattach && utfrune("|decp", r)==nil)
 			error(Enoattach);
 		t = devno(r, 1);
 		if(t == -1)
@@ -1371,7 +1371,7 @@ namec(char *aname, int amode, int omode, ulong perm)
 		break;
 
 	default:
-		c = up->pgrp->dot;
+		c = up->env->pgrp->dot;
 		incref(c);
 		break;
 	}
@@ -1398,8 +1398,8 @@ namec(char *aname, int amode, int omode, ulong perm)
 				e.nerror, e.off[e.nerror]);
 		len = e.prefix+e.off[e.nerror];
 		free(e.off);
-		err = up->errstr;
-		up->errstr = up->syserrstr;
+		err = up->env->errstr;
+		up->env->errstr = up->syserrstr;
 		up->syserrstr = err;
 		namelenerror(aname, len, err);
 	}
@@ -1637,16 +1637,16 @@ namec(char *aname, int amode, int omode, ulong perm)
 		if(omode & OEXCL)
 			nexterror();
 		/* save error */
-		err = up->errstr;
-		up->errstr = up->syserrstr;
+		err = up->env->errstr;
+		up->env->errstr = up->syserrstr;
 		up->syserrstr = err;
 		/* note: we depend that walk does not error */
 		if(walk(&c, e.elems+e.nelems-1, 1, nomount, nil) < 0)
 			error(err);	/* report true error */
 		/* restore error */
 		err = up->syserrstr;
-		up->syserrstr = up->errstr;
-		up->errstr = err;
+		up->syserrstr = up->env->errstr;
+		up->env->errstr = err;
 		omode |= OTRUNC;
 		goto Open;
 

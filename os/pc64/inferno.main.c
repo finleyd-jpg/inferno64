@@ -13,6 +13,8 @@ int	pckdebug;
 
 static  uchar *sp;	/* stack pointer for /boot */
 
+#define MAXCONF 64
+
 char bootdisk[KNAMELEN];
 char *confname[MAXCONF];
 char *confval[MAXCONF];
@@ -115,6 +117,7 @@ main(void)
 	userinit();
 	doc("schedinit");
 	active.thunderbirdsarego = 1;
+	while(1);
 	schedinit();
 	
 }

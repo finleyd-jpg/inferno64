@@ -11,7 +11,7 @@
 #include "../port/error.h"
 
 #define Ureg Ureg386
-#include "/386/include/ureg.h"
+#include "ureg.h"
 typedef struct Ureg386 Ureg386;
 
 #define	Image	IMAGE

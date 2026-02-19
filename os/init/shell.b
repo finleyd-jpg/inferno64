@@ -24,18 +24,18 @@ init(nil: ref Draw->Context, nil: list of string)
 	if(sys != nil)
 		sys->print("init: starting shell\n");
 
-#	sys->bind("#I", "/net", sys->MAFTER);	# IP
+	sys->bind("#I", "/net", sys->MAFTER);	# IP
 	sys->bind("#p", "/prog", sys->MREPL);	# prog device
 	sys->bind("#d", "/fd", Sys->MREPL);
-	sys->bind("#i", "/dev", sys->MREPL); 	# draw device
+#	sys->bind("#i", "/dev", sys->MREPL); 	# draw device
 	sys->bind("#t", "/dev", sys->MAFTER);	# serial line
 	sys->bind("#c", "/dev", sys->MAFTER); 	# console device
-	sys->bind("#S", "/dev", sys->MAFTER); 	# storage device
-	sys->bind("#W","/dev",sys->MAFTER);	# Flash
+#	sys->bind("#S", "/dev", sys->MAFTER); 	# storage device
+#	sys->bind("#W","/dev",sys->MAFTER);	# Flash
 #	sys->bind("#O", "/dev", sys->MAFTER);	# Modem
 #	sys->bind("#T","/dev",sys->MAFTER);	# Touchscreen
 
-	srv();
+#	srv();
 
 	spawn shell->init(nil, nil);
 }

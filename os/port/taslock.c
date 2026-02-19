@@ -43,8 +43,8 @@ lockloop(Lock *l, uintptr pc)
 		return;
 
 	p = l->p;
-	print("lock %#p loop key %#ux pc %#p held by pc %#p proc %ud\n",
-		l, l->key, pc, l->pc, p ? p->pid : 0);
+	/* print("lock %#p loop key %#ux pc %#p held by pc %#p proc %ud\n",
+		l, l->key, pc, l->pc, p ? p->pid : 0); */
 	dumpaproc(up);
 	if(p != nil)
 		dumpaproc(p);

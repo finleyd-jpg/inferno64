@@ -187,7 +187,7 @@ sb7  = -2.24409524465858183362e+01; /* 0xC03670E2, 0x42712D62 */
 	double erf(double x) 
 {
 	int hx,ix,i;
-	double R,S,P,Q,s,y,z,r;
+	double R,S,Sa,P,Q,s,y,z,r;
 	hx = __HI(x);
 	ix = hx&0x7fffffff;
 	if(ix>=0x7ff00000) {		/* erf(nan)=nan */
@@ -219,15 +219,12 @@ sb7  = -2.24409524465858183362e+01; /* 0xC03670E2, 0x42712D62 */
 	x = fabs(x);
  	s = one/(x*x);
 	if(ix< 0x4006DB6E) {	/* |x| < 1/0.35 */
-	    R=ra0+s*(ra1+s*(ra2+s*(ra3+s*(ra4+s*(
-				ra5+s*(ra6+s*ra7))))));
-	    S=one+s*(sa1+s*(sa2+s*(sa3+s*(sa4+s*(
-				sa5+s*(sa6+s*(sa7+s*sa8)))))));
+	    R=ra0+s*(ra1+s*(ra2+s*(ra3+s*(ra4+s*(ra5+s*(ra6+s*ra7))))));
+		Sa=(sa3+s*(sa4+s*(sa5+s*(sa6+s*(sa7+s*sa8)))));
+	    S=one+s*(sa1+s*(sa2+s*Sa));
 	} else {	/* |x| >= 1/0.35 */
-	    R=rb0+s*(rb1+s*(rb2+s*(rb3+s*(rb4+s*(
-				rb5+s*rb6)))));
-	    S=one+s*(sb1+s*(sb2+s*(sb3+s*(sb4+s*(
-				sb5+s*(sb6+s*sb7))))));
+	    R=rb0+s*(rb1+s*(rb2+s*(rb3+s*(rb4+s*(rb5+s*rb6)))));
+	    S=one+s*(sb1+s*(sb2+s*(sb3+s*(sb4+s*(sb5+s*(sb6+s*sb7))))));
 	}
 	z  = x;  
 	__LO(z) = 0;
@@ -238,7 +235,7 @@ sb7  = -2.24409524465858183362e+01; /* 0xC03670E2, 0x42712D62 */
 	double erfc(double x) 
 {
 	int hx,ix;
-	double R,S,P,Q,s,y,z,r;
+	double R,S,Sa,P,Q,s,y,z,r;
 	hx = __HI(x);
 	ix = hx&0x7fffffff;
 	if(ix>=0x7ff00000) {			/* erfc(nan)=nan */
@@ -275,10 +272,9 @@ sb7  = -2.24409524465858183362e+01; /* 0xC03670E2, 0x42712D62 */
 	    x = fabs(x);
  	    s = one/(x*x);
 	    if(ix< 0x4006DB6D) {	/* |x| < 1/.35 ~ 2.857143*/
-	        R=ra0+s*(ra1+s*(ra2+s*(ra3+s*(ra4+s*(
-				ra5+s*(ra6+s*ra7))))));
-	        S=one+s*(sa1+s*(sa2+s*(sa3+s*(sa4+s*(
-				sa5+s*(sa6+s*(sa7+s*sa8)))))));
+	        R=ra0+s*(ra1+s*(ra2+s*(ra3+s*(ra4+s*(ra5+s*(ra6+s*ra7))))));
+			Sa=(sa5+s*(sa6+s*(sa7+s*sa8)));
+	        S=one+s*(sa1+s*(sa2+s*(sa3+s*(sa4+s*Sa))));
 	    } else {			/* |x| >= 1/.35 ~ 2.857143 */
 		if(hx<0&&ix>=0x40180000) return two-tiny;/* x < -6 */
 	        R=rb0+s*(rb1+s*(rb2+s*(rb3+s*(rb4+s*(

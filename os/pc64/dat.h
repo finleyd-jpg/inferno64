@@ -118,7 +118,7 @@ struct Conf
 	u32	nmach;		/* processors */
 	u32	nproc;		/* processes */
 	u32	monitor;	/* has monitor? */
-	Confmem mem[16];	/* physical memory */
+	Confmem mem[64];	/* physical memory */
 	uintptr	npage;		/* total physical pages of memory */
 	uintptr	nswap;		/* number of swap pages */
 	u32	copymode;	/* 0 is copy on write, 1 is copy on reference */

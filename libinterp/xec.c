@@ -1,9 +1,13 @@
 #include "lib9.h"
+
 #include "isa.h"
+
 #include "interp.h"
+
 #include "raise.h"
 #include "pool.h"
 
+#undef DBG
 #define DBG if(0) print
 static int debug = 0;
 
@@ -372,6 +376,7 @@ OP(frame)
 		initmem(t, f);
 	T(d) = f;
 }
+
 /* from the module link loaded at src1 using the index src2
    build the frame at dst
  */
@@ -384,8 +389,9 @@ OP(mframe)
 	int o;
 
 	ml = *(Modlink**)R.s;
-	if(ml == H)
-                errorf("mframe: %s", exModule);
+	if(ml == H) {
+		errorf("mframe: %s", exModule);
+	}
 
 	o = W(m);
 	if(o >= 0){
@@ -1780,7 +1786,7 @@ xec(Prog *p)
 		error(m);
 	}
 
-	// print("%lux %lux %lux %lux %lux\n", (uintptr)&R, R.xpc, R.FP, R.MP, R.PC);
+	/* print("%lux %lux %lux %lux %lux\n", (uintptr)&R, R.xpc, R.FP, R.MP, R.PC); */
 	showprog(p);
 	if(R.M->compiled)
 		comvec();

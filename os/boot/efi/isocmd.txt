@@ -1,0 +1,1 @@
+mkisofs -R -J -c BOOT.CAT -omit-version-number -omit-period -o cd.iso -no-emul-boot -eltorito-boot 386/9bootiso -eltorito-alt-boot -no-emul-boot -eltorito-boot efiboot.fat tmp

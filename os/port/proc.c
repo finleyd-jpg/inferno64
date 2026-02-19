@@ -659,7 +659,7 @@ found:
 	p = dequeueproc(rq, p);
 	if(p == nil)
 		goto loop;
-
+	
 	p->state = Scheding;
 	p->mp = MACHP(m->machno);
 
@@ -667,9 +667,23 @@ found:
 		edfrun(p, rq == &runq[PriEdf]);	/* start deadline timer and do admin */
 		edfunlock();
 	}
+	
 	pt = proctrace;
 	if(pt != nil)
 		pt(p, SRun, 0);
+	return p;
+}
+
+int
+setpri(int pri)
+{
+	int p;
+
+	/* called by up so not on run queue */
+	p = up->priority;
+	up->priority = pri;
+	if(up->state == Running && anyhigher())
+		sched();
 	return p;
 }
 
@@ -703,9 +717,12 @@ newproc(void)
 	p->delaysched = 0;
 	p->trace = 0;
 
-	kstrdup(&p->user, "*nouser");
-	p->errstr = p->errbuf0;
-	p->syserrstr = p->errbuf1;
+	memset(&p->defenv, 0, sizeof(p->defenv));
+	p->env = &p->defenv;
+
+	kstrdup(&p->env->user, "*nouser");
+	p->env->errstr = p->env->errbuf0;
+	p->env->syserrstr = p->env->errbuf1;
 
 	/*
 	 * a user process. kproc() can change it as it needs.
@@ -724,7 +741,7 @@ newproc(void)
 	pidalloc(p);
 	if(p->pid == 0)
 		panic("pidalloc");
-	/* addprog(p); no more dis */
+	addprog(p);
 
 	/* TODO should we do this just user forth procs or does it need to be done for kproc's too */
 	memset(p->time, 0, sizeof(p->time));
@@ -1167,7 +1184,6 @@ freebroken(void)
 }
 
 
-/*
 void
 notkilled(void)
 {
@@ -1175,7 +1191,6 @@ notkilled(void)
 	up->killed = 0;
 	unlock(&up->rlock);
 }
-*/
 
 void
 pexit(char *exitstr, int freemem)
@@ -1200,16 +1215,16 @@ pexit(char *exitstr, int freemem)
 
 	/* nil out all the resources under lock (free later) */
 	qlock(&up->debug);
-	fgrp = up->fgrp;
-	up->fgrp = nil;
-	egrp = up->egrp;
-	up->egrp = nil;
+	fgrp = up->env->fgrp;
+	up->env->fgrp = nil;
+	egrp = up->env->egrp;
+	up->env->egrp = nil;
 	rgrp = up->rgrp;
 	up->rgrp = nil;
 /*	dot = up->pgrp->dot;
 	up->pgrp->dot = nil;*/
-	pgrp = up->pgrp;
-	up->pgrp = nil;
+	pgrp = up->env->pgrp;
+	up->env->pgrp = nil;
 	qunlock(&up->debug);
 
 	if(fgrp != nil)
@@ -1406,7 +1421,7 @@ procdump(void)
 			continue;
 
 		dumpaproc(p);
-		dumppgrp("	", p->pgrp);
+		dumppgrp("	", p->env->pgrp);
 	}
 }
 
@@ -1426,20 +1441,20 @@ kproc(char *name, void (*func)(void *), void *arg, int flags)
 
 	qlock(&p->debug);
 	if(flags & KPDUPPG) {
-		pg = up->pgrp;
+		pg = up->env->pgrp;
 		incref(pg);
-		p->pgrp = pg;
+		p->env->pgrp = pg;
 	}
 	if(flags & KPDUPFDG) {
-		fg = up->fgrp;
+		fg = up->env->fgrp;
 		incref(fg);
-		p->fgrp = fg;
+		p->env->fgrp = fg;
 	}
 	if(flags & KPDUPENVG) {
-		eg = up->egrp;
+		eg = up->env->egrp;
 		if(eg != nil)
-			incref(eg);
-		p->egrp = eg;
+			incref(&eg->r);
+		p->env->egrp = eg;
 	}
 
 	p->nnote = 0;
@@ -1459,7 +1474,7 @@ kproc(char *name, void (*func)(void *), void *arg, int flags)
 /* this does all of the above 3 lines */
 	kprocchild(p, func, arg);
 
-	kstrdup(&p->user, up->user);
+	kstrdup(&p->env->user, up->env->user);
 	kstrdup(&p->text, name);
 	kstrdup(&p->args, "");
 	p->nargs = 0;
@@ -1573,7 +1588,7 @@ error(char *err)
 		panic("error stack too deep");
 	if(err == nil)
 		panic("error: nil parameter");
-	kstrcpy(up->errstr, err, ERRMAX);
+	kstrcpy(up->env->errstr, err, ERRMAX);
 	setlabel(&up->errlab[NERR-1]);
 	if(emptystr(err) == 1){
 		DBG("error nil error err %s caller 0x%p up->pid %d\n", err, getcallerpc(&err), up->pid);
@@ -1606,8 +1621,8 @@ kerrstr(char *err, uint size)
 
 	char tmp[ERRMAX];
 
-	kstrcpy(tmp, up->errstr, sizeof(tmp));
-	kstrcpy(up->errstr, err, ERRMAX);
+	kstrcpy(tmp, up->env->errstr, sizeof(tmp));
+	kstrcpy(up->env->errstr, err, ERRMAX);
 	kstrcpy(err, tmp, size);
 }
 
@@ -1617,8 +1632,8 @@ kgerrstr(char *err, uint size)
 {
 	char tmp[ERRMAX];
 
-	kstrcpy(tmp, up->errstr, sizeof(tmp));
-	kstrcpy(up->errstr, err, ERRMAX);
+	kstrcpy(tmp, up->env->errstr, sizeof(tmp));
+	kstrcpy(up->env->errstr, err, ERRMAX);
 	kstrcpy(err, tmp, size);
 }
 
@@ -1632,7 +1647,7 @@ kwerrstr(char *fmt, ...)
 	va_start(arg, fmt);
 	vseprint(buf, buf+sizeof(buf), fmt, arg);
 	va_end(arg);
-	kstrcpy(up->errstr, buf, ERRMAX);
+	kstrcpy(up->env->errstr, buf, ERRMAX);
 }
 
 void
@@ -1644,7 +1659,7 @@ werrstr(char *fmt, ...)
 	va_start(arg, fmt);
 	vseprint(buf, buf+sizeof(buf), fmt, arg);
 	va_end(arg);
-	kstrcpy(up->errstr, buf, ERRMAX);
+	kstrcpy(up->env->errstr, buf, ERRMAX);
 }
 
 /* for dynamic modules - functions not macros */
@@ -1665,7 +1680,7 @@ poperr(void)
 char*
 enverror(void)
 {
-	return up->errstr;
+	return up->env->errstr;
 }
 
 void
@@ -1688,7 +1703,7 @@ void
 setid(char *name, int owner)
 {
 	if(!owner || iseve())
-		kstrdup(&up->user, name);
+		kstrdup(&up->env->user, name);
 }
 
 /* TODO no idea what this rptproc() does
@@ -1797,8 +1812,8 @@ renameuser(char *old, char *new)
 	for(i = 0; i < conf.nproc; i++){
 		p = proctab(i);
 		qlock(&p->debug);
-		if(p->user != nil && strcmp(old, p->user) == 0)
-			kstrdup(&p->user, new);
+		if(p->env->user != nil && strcmp(old, p->env->user) == 0)
+			kstrdup(&p->env->user, new);
 		qunlock(&p->debug);
 	}
 }
@@ -1807,9 +1822,24 @@ void
 procsetuser(char *new)
 {
 	qlock(&up->debug);
-	kstrdup(&up->user, new);
+	kstrdup(&up->env->user, new);
 	up->basepri = PriNormal;
 	qunlock(&up->debug);
+}
+
+
+/*
+ *  called by devcons() for user device
+ *
+ *  anyone can become none
+ */
+long
+userwrite(char *a, int n)
+{
+	if(n!=4 || strncmp(a, "none", 4)!=0)
+		error(Eperm);
+	procsetuser("none");
+	return n;
 }
 
 /*

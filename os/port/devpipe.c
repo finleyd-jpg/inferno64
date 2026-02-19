@@ -190,7 +190,7 @@ pipewstat(Chan* c, uchar* db, int n)
 	Pipe *p;
 
 	p = c->aux;
-	if(strcmp(up->user, eve) != 0)
+	if(strcmp(up->env->user, eve) != 0)
 		error(Eperm);
 	if(NETTYPE(c->qid.path) == Qdir)
 		error(Eisdir);

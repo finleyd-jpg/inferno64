@@ -27,7 +27,6 @@ static  uchar *sp;	/* stack pointer for /boot */
 
 char bootdisk[KNAMELEN];
 
-extern void ffmain(void);	/* forth interpreter */
 extern intptr mventry_dp;
 extern intptr mc_dp;
 extern intptr dtop;
@@ -85,31 +84,6 @@ writemsg(char *msg, int msglen)
 		*video++ = colour;
 	}
 	nchars += msglen;
-}
-
-/* used by ff */
-void
-show_ff_return_stack(void)
-{
-	intptr* i;
-
-	for(i = (intptr*)0x112000; i<(intptr*)0x112020; i++){
-		print("0x%p: 0x%zx\n", i, *i);
-	}
-}
-
-void
-screenput(char *msg, int msglen)
-{
-	show_ff_return_stack();
-	print("msg %c, msglen %d\n", *msg, msglen);
-	if(screenputs != nil)
-		screenputs(msg, 1);
-	else
-		writemsg(msg, msglen);
-	print("\nscreenput exiting\n");
-	show_ff_return_stack();
-	print("\n");
 }
 
 void
@@ -286,6 +260,7 @@ void
 init0(void)
 {
 	/*char buf[2*KNAMELEN];*/
+	Osenv *o;
 
 	up->nerrlab = 0;
 
@@ -294,16 +269,22 @@ init0(void)
 		print("init0: waserror() loop\n");
 		panic("init0: %r");
 	}
+
+	o = up->env;
+
 	/*
 	 * These are o.k. because rootinit is null.
 	 * Then early kproc's will have a root and dot.
 	 */
-	up->pgrp->slash = namec("#/", Atodir, 0, 0);
-	pathclose(up->pgrp->slash->path);
-	up->pgrp->slash->path = newpath("/");
-	up->pgrp->dot = cclone(up->pgrp->slash);
+	o->pgrp->slash = namec("#/", Atodir, 0, 0);
+	pathclose(o->pgrp->slash->path);
+	o->pgrp->slash->path = newpath("/");
+	o->pgrp->dot = cclone(o->pgrp->slash);
+
+	print("chandevinit\n");
 
 	chandevinit();
+
 /*	print("devtab\n");
 	for(int i=0; devtab[i] != nil; i++){
 		print("	i %d devtab[i] 0x%p dc %d name %s\n", i, devtab[i], devtab[i]->dc, devtab[i]->name);
@@ -320,6 +301,7 @@ init0(void)
 		setconfenv();
 		poperror();
 	}
+
 	kproc("alarm", alarmkproc, 0, 0);
 
 	if(kopen("#c/cons", OREAD) != 0)
@@ -328,12 +310,9 @@ init0(void)
 	kopen("#c/cons", OWRITE);
 
 	/* the space at the end is needed to recognize init.f as a word */
-	up->args = " include init.f ";
-	up->nargs = strlen(up->args);
 	print("init0: args len %d: %s\n", up->nargs, up->args);
-	goforth(up->fmem);
-	/* disinit("/osinit.dis"); */
-	/* disinit("/osinit.dis"); */
+	/* goforth(up->fmem); */
+	disinit("/osinit.dis");
 	/* init0 will never return */
 	panic("init0");
 }
@@ -342,18 +321,19 @@ void
 userinit(void)
 {
 	Proc *p;
+	Osenv *o;
 
 	up = nil;
-	if((p = newforthproc()) == nil){
-		panic("no procs for userinit");
-	}
 
-	p->fgrp = newfgrp(nil);
-	p->egrp = newegrp();
-	p->pgrp = newpgrp();
-	kstrdup(&p->user, eve);
+	p = newproc();
+	o = p->env;
 
-	strcpy(p->text, "*init*");
+	o->fgrp = newfgrp(nil);
+	o->egrp = newegrp();
+	o->pgrp = newpgrp();
+	kstrdup(&o->user, eve);
+
+	strcpy(p->text, "interp");
 	/*
 	 * Kernel Stack
 	 *
@@ -445,7 +425,7 @@ procrestore(Proc *p)
 {
 	if(p->dr[7] != 0){
 		m->dr7 = p->dr[7];
-		putdr(p->dr);
+		/* putdr(p->dr); */
 	}
 	
 /*	if(p->vmx != nil)

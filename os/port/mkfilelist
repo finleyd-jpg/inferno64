@@ -1,4 +1,4 @@
-#!/bin/rc
+#!/bin/env rc
 
 rfork e
 switch($#*){
