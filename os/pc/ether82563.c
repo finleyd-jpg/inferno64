@@ -652,17 +652,18 @@ cname(Ctlr *c)
 	return cttab[c->type].name;
 }
 
-static long
-i82563ifstat(Ether *edev, void *a, long n, ulong offset)
+static char*
+i82563ifstat(void *arg, char *p, char *e)
 {
-	char *s, *p, *e, *stat;
+	Ether *edev = arg;
+	char *s, *stat;
 	int i, r;
 	uvlong tuvl, ruvl;
 	Ctlr *ctlr;
 
-	p = s = smalloc(READSTR);
-	e = p + READSTR;
-
+	if (p >= e)
+		return p;
+	
 	ctlr = edev->ctlr;
 	qlock(&ctlr->slock);
 
@@ -724,11 +725,9 @@ i82563ifstat(Ether *edev, void *a, long n, ulong offset)
 	p = seprint(p, e, "\n");
 
 	USED(p);
-	n = readstr(offset, a, n, s);
-	free(s);
 	qunlock(&ctlr->slock);
 
-	return n;
+	return p;
 }
 
 static void

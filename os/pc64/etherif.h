@@ -17,7 +17,7 @@ struct Ether {
 	void	(*detach)(Ether*);
 	void	(*transmit)(Ether*);
 	/* TODO removed in 9front void	(*interrupt)(Ureg*, void*); */
-	s32	(*ifstat)(Ether*, void*, s32, u32);
+	/* s32	(*ifstat)(Ether*, void*, s32, u32); */
 	s32 	(*ctl)(Ether*, void*, s32); /* custom ctl messages */
 	void	(*power)(Ether*, s32);	/* power on/off */
 	void	(*shutdown)(Ether*);	/* shutdown hardware before reboot */
@@ -28,10 +28,12 @@ struct Ether {
 	Netif;
 };
 
-extern Block* etheriq(Ether*, Block*, s32);
+/*
+extern void etheriq(Ether*, Block*);
 extern void addethercard(char*, int(*)(Ether*));
 extern u32 ethercrc(uchar*, s32);
 extern s32 parseether(uchar*, char*);
+*/
 
 #define NEXT(x, l)	(((x)+1)%(l))
 #define PREV(x, l)	(((x) == 0) ? (l)-1: (x)-1)

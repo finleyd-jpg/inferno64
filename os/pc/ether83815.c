@@ -3,6 +3,7 @@
  *
  * Supports only internal PHY and has been tested on:
  *	Netgear FA311TX (using Netgear DS108 10/100 hub)
+ *	SiS 900 within SiS 630
  * To do:
  *	check Ethernet address;
  *	test autonegotiation on 10 Mbit, and 100 Mbit full duplex;
@@ -24,10 +25,9 @@
 #include "../port/pci.h"
 #include "../port/error.h"
 #include "../port/netif.h"
+#include "../port/etherif.h"
 
-#include "etherif.h"
-
-#define DEBUG		(0)
+#define DEBUG		0
 #define debug		if(DEBUG)print
 
 enum {
@@ -92,10 +92,14 @@ enum {				/* PCI vendor & device IDs */
 	SiSrev630s =	0x81,
 	SiSrev630e =	0x82,
 	SiSrev630ea1 =	0x83,
+	SiSrev635 =	0x90,
 
 	SiSeenodeaddr =	8,		/* short addr of SiS eeprom mac addr */
 	SiS630eenodeaddr =	9,	/* likewise for the 630 */
 	Nseenodeaddr =	6,		/* " for NS eeprom */
+	Nat83815avng =	0x403,
+	Nat83816avng =	0x505,		/* 83816 acts like submodel of 83815 */
+					/* using reg. 0x58 to disambiguate. */
 };
 
 typedef struct Ctlr Ctlr;
@@ -153,6 +157,8 @@ typedef struct Ctlr {
 	ulong	rtabt;
 	ulong	sserr;
 	ulong	rxsover;
+
+	ulong	version;		/* silicon version; register 0x58h */
 } Ctlr;
 
 static Ctlr* ctlrhead;
@@ -161,6 +167,7 @@ static Ctlr* ctlrtail;
 enum {
 	/* registers (could memory map) */
 	Rcr=	0x00,		/* command register */
+	  Rld=		1<<10,	/* reload */
 	  Rst=		1<<8,
 	  Rxr=		1<<5,	/* receiver reset */
 	  Txr=		1<<4,	/* transmitter reset */
@@ -338,13 +345,14 @@ attach(Ether* ether)
 	iunlock(&ctlr->lock);
 }
 
-static s32
-ifstat(Ether* ether, void* a, s32 n, u32 offset)
+static char*
+ifstat(void *a, char *p, char *e)
 {
+	Ether *ether;
 	Ctlr *ctlr;
-	char *buf, *p;
-	int i, l, len;
+	int i;
 
+	ether = a;
 	ctlr = ether->ctlr;
 
 	ether->crcs = ctlr->crce;
@@ -352,54 +360,43 @@ ifstat(Ether* ether, void* a, s32 n, u32 offset)
 	ether->buffs = ctlr->rxorn+ctlr->tfu;
 	ether->overflows = ctlr->rxsovr;
 
-	if(n == 0)
-		return 0;
+	if(p >= e)
+		return p;
 
-	p = malloc(READSTR);
-	l = snprint(p, READSTR, "Rxa: %lud\n", ctlr->rxa);
-	l += snprint(p+l, READSTR-l, "Rxo: %lud\n", ctlr->rxo);
-	l += snprint(p+l, READSTR-l, "Rlong: %lud\n", ctlr->rlong);
-	l += snprint(p+l, READSTR-l, "Runt: %lud\n", ctlr->runt);
-	l += snprint(p+l, READSTR-l, "Ise: %lud\n", ctlr->ise);
-	l += snprint(p+l, READSTR-l, "Fae: %lud\n", ctlr->fae);
-	l += snprint(p+l, READSTR-l, "Lbp: %lud\n", ctlr->lbp);
-	l += snprint(p+l, READSTR-l, "Tfu: %lud\n", ctlr->tfu);
-	l += snprint(p+l, READSTR-l, "Txa: %lud\n", ctlr->txa);
-	l += snprint(p+l, READSTR-l, "CRC Error: %lud\n", ctlr->crce);
-	l += snprint(p+l, READSTR-l, "Collision Seen: %lud\n", ctlr->col);
-	l += snprint(p+l, READSTR-l, "Frame Too Long: %lud\n", ctlr->rlong);
-	l += snprint(p+l, READSTR-l, "Runt Frame: %lud\n", ctlr->runt);
-	l += snprint(p+l, READSTR-l, "Rx Underflow Error: %lud\n", ctlr->rxorn);
-	l += snprint(p+l, READSTR-l, "Tx Underrun: %lud\n", ctlr->txurn);
-	l += snprint(p+l, READSTR-l, "Excessive Collisions: %lud\n", ctlr->ec);
-	l += snprint(p+l, READSTR-l, "Late Collision: %lud\n", ctlr->owc);
-	l += snprint(p+l, READSTR-l, "Loss of Carrier: %lud\n", ctlr->crs);
-	l += snprint(p+l, READSTR-l, "Parity: %lud\n", ctlr->dperr);
-	l += snprint(p+l, READSTR-l, "Aborts: %lud\n", ctlr->rmabt+ctlr->rtabt);
-	l += snprint(p+l, READSTR-l, "RX Status overrun: %lud\n", ctlr->rxsover);
-	snprint(p+l, READSTR-l, "ntqmax: %d\n", ctlr->ntqmax);
+	p = seprint(p, e, "Rxa: %lud\n", ctlr->rxa);
+	p = seprint(p, e, "Rxo: %lud\n", ctlr->rxo);
+	p = seprint(p, e, "Rlong: %lud\n", ctlr->rlong);
+	p = seprint(p, e, "Runt: %lud\n", ctlr->runt);
+	p = seprint(p, e, "Ise: %lud\n", ctlr->ise);
+	p = seprint(p, e, "Fae: %lud\n", ctlr->fae);
+	p = seprint(p, e, "Lbp: %lud\n", ctlr->lbp);
+	p = seprint(p, e, "Tfu: %lud\n", ctlr->tfu);
+	p = seprint(p, e, "Txa: %lud\n", ctlr->txa);
+	p = seprint(p, e, "CRC Error: %lud\n", ctlr->crce);
+	p = seprint(p, e, "Collision Seen: %lud\n", ctlr->col);
+	p = seprint(p, e, "Frame Too Long: %lud\n", ctlr->rlong);
+	p = seprint(p, e, "Runt Frame: %lud\n", ctlr->runt);
+	p = seprint(p, e, "Rx Underflow Error: %lud\n", ctlr->rxorn);
+	p = seprint(p, e, "Tx Underrun: %lud\n", ctlr->txurn);
+	p = seprint(p, e, "Excessive Collisions: %lud\n", ctlr->ec);
+	p = seprint(p, e, "Late Collision: %lud\n", ctlr->owc);
+	p = seprint(p, e, "Loss of Carrier: %lud\n", ctlr->crs);
+	p = seprint(p, e, "Parity: %lud\n", ctlr->dperr);
+	p = seprint(p, e, "Aborts: %lud\n", ctlr->rmabt+ctlr->rtabt);
+	p = seprint(p, e, "RX Status overrun: %lud\n", ctlr->rxsover);
+	p = seprint(p, e, "ntqmax: %d\n", ctlr->ntqmax);
 	ctlr->ntqmax = 0;
-	buf = a;
-	len = readstr(offset, buf, n, p);
-	if(offset > l)
-		offset -= l;
-	else
-		offset = 0;
-	buf += len;
-	n -= len;
 
-	l = snprint(p, READSTR, "srom:");
+	p = seprint(p, e, "srom:");
 	for(i = 0; i < nelem(ctlr->srom); i++){
 		if(i && ((i & 0x0F) == 0))
-			l += snprint(p+l, READSTR-l, "\n     ");
-		l += snprint(p+l, READSTR-l, " %4.4uX", ctlr->srom[i]);
+			p = seprint(p, e, "\n     ");
+		p = seprint(p, e, " %4.4uX", ctlr->srom[i]);
 	}
 
-	snprint(p+l, READSTR-l, "\n");
-	len += readstr(offset, buf, n, p);
-	free(p);
+	p = seprint(p, e, "\n");
 
-	return len;
+	return p;
 }
 
 static void
@@ -539,7 +536,7 @@ interrupt(Ureg*, void* arg)
 						freeb(des->bp);
 					}else{
 						des->bp->wp = des->bp->rp+len;
-						etheriq(ether, des->bp, 1);
+						etheriq(ether, des->bp);
 					}
 					des->bp = bp;
 					des->addr = PADDR(bp->rp);
@@ -639,7 +636,7 @@ ctlrinit(Ether* ether)
 	for(des = ctlr->rdr; des < &ctlr->rdr[ctlr->nrdr]; des++){
 		des->bp = iallocb(Rbsz);
 		if(des->bp == nil)
-			error(Enomem);
+			panic("ether83815: can't allocate receive buffer");
 		des->cmdsts = Rbsz;
 		des->addr = PADDR(des->bp->rp);
 		if(last != nil)
@@ -696,22 +693,24 @@ eeidle(Ctlr *ctlr)
 	microdelay(2);
 }
 
-static int
+static ushort
 eegetw(Ctlr *ctlr, int a)
 {
-	int d, i, w, v;
+	int d, i, w;
 
 	eeidle(ctlr);
 	eeclk(ctlr, 0);
 	eeclk(ctlr, Eeclk);
 	d = 0x180 | a;
 	for(i=0x400; i; i>>=1){
-		v = (d & i) ? Eedi : 0;
-		eeclk(ctlr, v);
-		eeclk(ctlr, Eeclk|v);
+		if(d & i)
+			csr32w(ctlr, Rmear, Eesel|Eedi);
+		else
+			csr32w(ctlr, Rmear, Eesel);
+		eeclk(ctlr, Eeclk);
+		eeclk(ctlr, 0);
+		microdelay(2);
 	}
-	eeclk(ctlr, 0);
-
 	w = 0;
 	for(i=0x8000; i; i >>= 1){
 		eeclk(ctlr, Eeclk);
@@ -724,20 +723,26 @@ eegetw(Ctlr *ctlr, int a)
 	return w;
 }
 
-static void
+static int
 resetctlr(Ctlr *ctlr)
 {
 	int i;
 
+	/*
+	 * Soft-reset the controller
+	 */
 	csr32w(ctlr, Rcr, Rst);
 	for(i=0;; i++){
-		if(i > 100)
-			panic("ns83815: soft reset did not complete");
+		if(i > 100){
+			print("ns83815: soft reset did not complete\n");
+			return -1;
+		}
 		microdelay(250);
 		if((csr32r(ctlr, Rcr) & Rst) == 0)
 			break;
 		delay(1);
 	}
+	return 0;
 }
 
 static void
@@ -750,7 +755,7 @@ print("ether83815 shutting down\n");
 	resetctlr(ctlr);
 }
 
-static void
+static int
 softreset(Ctlr* ctlr, int resetphys)
 {
 	int i, w;
@@ -759,18 +764,22 @@ softreset(Ctlr* ctlr, int resetphys)
 	 * Soft-reset the controller
 	 */
 	resetctlr(ctlr);
+	if(ctlr->id != Nat83815)
+		return 0;
 	csr32w(ctlr, Rccsr, Pmests);
 	csr32w(ctlr, Rccsr, 0);
 	csr32w(ctlr, Rcfg, csr32r(ctlr, Rcfg) | Pint_acen);
-
+	ctlr->version = csr32r(ctlr, Rsrr);
 	if(resetphys){
 		/*
 		 * Soft-reset the PHY
 		 */
 		csr32w(ctlr, Rbmcr, Reset);
 		for(i=0;; i++){
-			if(i > 100)
-				panic("ns83815: PHY soft reset time out");
+			if(i > 100){
+				print("ns83815: PHY soft reset time out\n");
+				return -1;
+			}
 			if((csr32r(ctlr, Rbmcr) & Reset) == 0)
 				break;
 			delay(1);
@@ -789,7 +798,7 @@ softreset(Ctlr* ctlr, int resetphys)
 	/*
 	 * Auto negotiate
 	 */
-	w = csr16r(ctlr, Rbmsr);	/* clear latched bits */
+	csr16r(ctlr, Rbmsr);		/* clear latched bits */
 	debug("anar: %4.4ux\n", csr16r(ctlr, Ranar));
 	csr16w(ctlr, Rbmcr, Anena);
 	if(csr16r(ctlr, Ranar) == 0 || (csr32r(ctlr, Rcfg) & Aneg_dn) == 0){
@@ -797,7 +806,7 @@ softreset(Ctlr* ctlr, int resetphys)
 		for(i=0;; i++){
 			if(i > 3000){
 				print("ns83815: auto neg timed out\n");
-				break;
+				return -1;
 			}
 			if((w = csr16r(ctlr, Rbmsr)) & Ancomp)
 				break;
@@ -806,13 +815,14 @@ softreset(Ctlr* ctlr, int resetphys)
 		debug("%d ms\n", i);
 		w &= 0xFFFF;
 		debug("bmsr: %4.4ux\n", w);
+		USED(w);
 	}
-	USED(w);
 	debug("anar: %4.4ux\n", csr16r(ctlr, Ranar));
 	debug("anlpar: %4.4ux\n", csr16r(ctlr, Ranlpar));
 	debug("aner: %4.4ux\n", csr16r(ctlr, Raner));
 	debug("physts: %4.4ux\n", csr16r(ctlr, Rphysts));
 	debug("tbscr: %4.4ux\n", csr16r(ctlr, Rtbscr));
+	return 0;
 }
 
 static int
@@ -907,29 +917,118 @@ sissrom(Ctlr *ctlr)
 	int i, off = SiSeenodeaddr, cnt = sizeof ee.eaddr / sizeof(short);
 	ushort *shp = (ushort *)ee.eaddr;
 
-	if(!is630(ctlr->id, ctlr->pcidev) || !sisrdcmos(ctlr)) {
+	if(ctlr->id == SiS900 && ctlr->pcidev->rid == SiSrev635) {
+		csr32w(ctlr, Rcr, csr32r(ctlr, Rcr) | Rld);
+		csr32w(ctlr, Rcr, csr32r(ctlr, Rcr) & ~Rld);
+		csr32w(ctlr, Rrfcr, csr32r(ctlr, Rrfcr) & ~Rfen);
+
+		csr32w(ctlr, Rrfcr, 0);
+		*shp++ = csr32r(ctlr, Rrfdr);
+		csr32w(ctlr, Rrfcr, 1<<16);
+		*shp++ = csr32r(ctlr, Rrfdr);
+		csr32w(ctlr, Rrfcr, 1<<17);
+		*shp = csr32r(ctlr, Rrfdr);
+
+		csr32w(ctlr, Rrfcr, csr32r(ctlr, Rrfcr) | Rfen);
+		memmove(ctlr->sromea, ee.eaddr, sizeof ctlr->sromea);
+	} else if(!is630(ctlr->id, ctlr->pcidev) || !sisrdcmos(ctlr)) {
 		for (i = 0; i < cnt; i++)
 			*shp++ = eegetw(ctlr, off++);
 		memmove(ctlr->sromea, ee.eaddr, sizeof ctlr->sromea);
 	}
 }
 
+ushort
+søkrisee(Ctlr *c, int n)
+{
+	int i;
+	uint cmd;
+	ushort r;
+
+   	csr32w(c, Rmear, Eesel);
+
+	cmd = 0x180|n;
+	for(i = 10; i >= 0; i--){
+		n = 1<<3;
+		if(cmd&(1<<i))
+			n |= 1;
+		csr32w(c, Rmear, n);
+		csr32r(c, Rmear);
+		csr32w(c, Rmear, n|4);
+		csr32r(c, Rmear);
+	}
+
+	csr32w(c, Rmear, 1<<3);
+	csr32r(c, Rmear);
+
+	r = 0;
+	for(i = 0; i < 16; i++){
+		csr32w(c, Rmear, 1<<3 | 1<<2);
+		csr32r(c, Rmear);
+		if(csr32r(c, Rmear) & 2)
+			r |= 1<<i;
+		csr32w(c, Rmear, 1<<3);
+		csr32r(c, Rmear);
+	}
+
+	csr32w(c, Rmear, 1<<3);
+	csr32w(c, Rmear, 0);
+
+	return r;
+}
+
 static void
-nssrom(Ctlr* ctlr)
+nsnormalea(Ctlr *ctlr)
 {
 	int i, j;
-
-	for(i = 0; i < nelem(ctlr->srom); i++)
-		ctlr->srom[i] = eegetw(ctlr, i);
 
 	/*
 	 * the MAC address is reversed, straddling word boundaries
 	 */
 	j = Nseenodeaddr*16 + 15;
-	for(i=0; i<48; i++){
+	for(i = 0; i < 48; i++){
 		ctlr->sromea[i>>3] |= ((ctlr->srom[j>>4] >> (15-(j&0xF))) & 1) << (i&7);
 		j++;
 	}
+}
+
+static void
+ns403ea(Ctlr *ctlr)
+{
+	int i;
+	ushort s, t;
+
+	s = ctlr->srom[6];
+	for(i = 0; i < 3; i++){
+		t = ctlr->srom[i+7];
+		ctlr->sromea[i*2]   = t<<1 | s>>15;
+		ctlr->sromea[i*2+1] = t>>7;
+		s = t;
+	}
+}
+
+static void
+nssrom(Ctlr* ctlr)
+{
+	int i, ns403;
+	ulong vers;
+	ushort (*ee)(Ctlr*, int);
+
+	vers = ctlr->version;
+	ns403 = vers == Nat83815avng || vers == Nat83816avng;
+	if(ns403){
+		ee = søkrisee;
+		print("soekris %lx\n", vers);
+	}else
+		ee = eegetw;
+
+	for(i = 0; i < nelem(ctlr->srom); i++)
+		ctlr->srom[i] = ee(ctlr, i);
+
+	if(ns403)
+		ns403ea(ctlr);
+	else
+		nsnormalea(ctlr);
 }
 
 static void
@@ -977,7 +1076,11 @@ scanpci83815(void)
 		 * bar[1] is the memory-mapped register address.
 		 */
 		ctlr = malloc(sizeof(Ctlr));
-		ctlr->port = p->mem[0].bar & ~0x01;
+		if(ctlr == nil){
+			print("ns83815: can't allocate memory\n");
+			continue;
+		}
+		ctlr->port = p->mem[0].bar & ~3;
 		ctlr->pcidev = p;
 		ctlr->id = id;
 
@@ -986,10 +1089,6 @@ scanpci83815(void)
 			free(ctlr);
 			continue;
 		}
-
-		softreset(ctlr, 0);
-		srom(ctlr);
-
 		if(ctlrhead != nil)
 			ctlrtail->next = ctlr;
 		else
@@ -1032,6 +1131,10 @@ reset(Ether* ether)
 	}
 	if(ctlr == nil)
 		return -1;
+
+	pcienable(ctlr->pcidev);
+	softreset(ctlr, 0);
+	srom(ctlr);
 
 	ether->ctlr = ctlr;
 	ether->port = ctlr->port;
@@ -1103,13 +1206,15 @@ reset(Ether* ether)
 	 */
 	ether->attach = attach;
 	ether->transmit = transmit;
-	ether->interrupt = interrupt;
-	ether->ifstat = ifstat;
 
 	ether->arg = ether;
+	ether->ifstat = ifstat;
 	ether->promiscuous = promiscuous;
 	ether->multicast = multicast;
 	ether->shutdown = shutdown;
+
+	intrenable(ether->irq, interrupt, ether, ether->tbdf, ether->name);
+
 	return 0;
 }
 

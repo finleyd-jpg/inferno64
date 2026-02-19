@@ -216,6 +216,11 @@ netifread(Netif *nif, Chan *c, void *a, long n, ulong offset)
 		p = malloc(READSTR);
 		if(p == nil)
 			return 0;
+		p[0] = '\0';
+		if (nif->ifstat != nil && !waserror()) {
+			(*nif->ifstat)(nif->arg, p, p);
+			poperror();
+		}
 		j = snprint(p, READSTR, "in: %llud\n", nif->inpackets);
 		j += snprint(p+j, READSTR-j, "link: %d\n", nif->link);
 		j += snprint(p+j, READSTR-j, "out: %llud\n", nif->outpackets);
@@ -248,7 +253,16 @@ netifread(Netif *nif, Chan *c, void *a, long n, ulong offset)
 		f = nif->f[NETID(c->qid.path)];
 		return readnum(offset, a, n, f->type, NUMSIZE);
 	case Nifstatqid:
-		return 0;
+		if (nif->ifstat == nil || offset >= READSTR)
+			return 0;
+		p = malloc(READSTR);
+		if (p == nil)
+			return 0;
+		p[0] = '\0';
+		(*nif->ifstat)(nif->arg, p, p + READSTR);
+		n = readstr(offset, a, n, p);
+		free(p);
+		return n;
 	}
 	error(Ebadarg);
 	return -1;	/* not reached */

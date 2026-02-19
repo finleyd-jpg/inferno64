@@ -516,10 +516,10 @@ rtl8169multicast(void* ether, uchar *eaddr, int add)
 	iunlock(ctlr);
 }
 
-static long
-rtl8169ifstat(Ether* edev, void* a, long n, ulong offset)
+static char*
+rtl8169ifstat(void *arg, char *p, char *e)
 {
-	char *p;
+	Ether *edev = arg;
 	Ctlr *ctlr;
 	Dtcc *dtcc;
 	int i, l, r, timeo;
@@ -552,7 +552,7 @@ rtl8169ifstat(Ether* edev, void* a, long n, ulong offset)
 	edev->buffs = dtcc->misspkt;
 	edev->overflows = ctlr->txdu+ctlr->rdu;
 
-	if(n == 0){
+	if(p >= e){
 		qunlock(&ctlr->slock);
 		poperror();
 		free(p);
@@ -600,13 +600,10 @@ rtl8169ifstat(Ether* edev, void* a, long n, ulong offset)
 		snprint(p+l, READSTR-l, "\n");
 	}
 
-	n = readstr(offset, a, n, p);
-
 	qunlock(&ctlr->slock);
 	poperror();
-	free(p);
-
-	return n;
+	
+	return p;
 }
 
 static void

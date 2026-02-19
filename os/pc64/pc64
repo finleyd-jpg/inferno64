@@ -68,8 +68,9 @@ lib
 
 link
 ##	ether82557	pci
-#	ether83815	pci
-#	etherelnk3	pci
+	ether83815	pci
+	ether2114x	pci
+	etherelnk3	pci
 #	ps2mouse
 	ethermedium
 ##	pppmedium ppp compress

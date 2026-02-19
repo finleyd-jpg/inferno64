@@ -126,6 +126,7 @@ uintptr	getrealloctag(void*);
 /* void	goforth(void *); */
 void		gotolabel(Label*);
 char*		getconfenv(void);
+void		growbp(Bpool*, int);
 void		halt(void);
 void 		(*hwrandbuf)(void*, u32);
 void		hnputl(void*, u32);
@@ -134,6 +135,7 @@ void		hnputs(void*, u16);
 long		hostownerwrite(char*, int);
 void		hzsched(void);
 Block*		iallocb(int);
+Block*		iallocbp(Bpool*);
 void		iallocsummary(void);
 void		ilock(Lock*);
 s32		incref(Ref*);

@@ -28,10 +28,12 @@ struct Ether {
 	Netif;
 };
 
-extern Block* etheriq(Ether*, Block*, int);
+/*
+extern void etheriq(Ether*, Block*);
 extern void addethercard(char*, int(*)(Ether*));
 extern ulong ethercrc(uchar*, int);
 extern int parseether(uchar*, char*);
+*/
 
 #define NEXT(x, l)	(((x)+1)%(l))
 #define PREV(x, l)	(((x) == 0) ? (l)-1: (x)-1)

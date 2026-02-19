@@ -10,6 +10,10 @@
 
 #include "ethermii.h"
 
+static void dummy(Mii*){}
+void (*addmiibus)(Mii*) = dummy;
+void (*delmiibus)(Mii*) = dummy;
+
 int
 mii(Mii* mii, int mask)
 {

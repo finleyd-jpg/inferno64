@@ -89,7 +89,8 @@ typedef struct Mii {
 	MiiPhy*	phy[NMiiPhy];
 	MiiPhy*	curphy;
 
-	void*	ctlr;
+	char	*name;
+	void	*ctlr;
 	int	(*mir)(Mii*, int, int);
 	int	(*miw)(Mii*, int, int, int);
 } Mii;
@@ -120,3 +121,6 @@ extern int miistatus(Mii*);
 
 extern int miimmdr(Mii*, int, int);
 extern int miimmdw(Mii*, int, int, int);
+
+extern void (*addmiibus)(Mii*);
+extern void (*delmiibus)(Mii*);
