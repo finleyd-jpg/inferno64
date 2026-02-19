@@ -1,7 +1,14 @@
 #include "lib9.h"
 #include <sys/types.h>
-#include <sys/stat.h>
 #include <fcntl.h>
+
+#ifdef LINUX_AMD64
+#include <sys/stat.h>
+#endif
+
+#ifdef LINUX_386
+#include <sys/stat.h>
+#endif
 
 int
 create(char *f, int mode, int perm)
