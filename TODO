@@ -1,0 +1,7 @@
+Inferno64 todo list:
+- Create both 32 and 64 concurrent versions of Dis (.d32, .d64 and the likes)
+- Update all programs to be compatible with reading and writing both 32bit and 64bit Dis
+- Add better encryption to Inferno
+- Native kernel graphics
+- Native kernel networking
+- Update all platform include dirs to use best ISA (32 or 64 bit)
