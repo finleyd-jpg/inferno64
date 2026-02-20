@@ -104,6 +104,7 @@ y.debug
 /Inferno/*/bin/*
 /Inferno/*/pbs
 /os/pc64/ipc64
+/os/pc64/ipc64.loader
 /Irix/*/bin/*
 /Linux/*/bin/*
 /Solaris/*/bin/*
